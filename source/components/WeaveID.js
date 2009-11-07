@@ -11,10 +11,10 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Bookmarks Sync.
+ * The Original Code is Weave.
  *
  * The Initial Developer of the Original Code is Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2007
+ * Portions created by the Initial Developer are Copyright (C) 2008
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -34,31 +34,41 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-// Process each item in the "constants hash" to add to "global" and give a name
-let EXPORTED_SYMBOLS = [((this[key] = val), key) for ([key, val] in Iterator({
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
 
-WEAVE_ID_VERSION:                      "@addon_version@",
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-PREFS_BRANCH:                          "extensions.weave.id.",
+function WeaveIDService() {}
+WeaveIDService.prototype = {
+  classDescription: "Weave Identity Service",
+  contractID: "@mozilla.org/weave/id-service;1",
+  classID: Components.ID("{cbfce1ab-9f82-4114-a49f-8c3b0cd5d312}"),
+  _xpcom_categories: [{ category: "app-startup", service: true }],
 
-// Host "key" to access Weave Identity in the password manager
-PWDMGR_HOST:                           "chrome://weave",
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                         Ci.nsISupportsWeakReference]),
 
-// File IO Flags
-MODE_RDONLY:                           0x01,
-MODE_WRONLY:                           0x02,
-MODE_CREATE:                           0x08,
-MODE_APPEND:                           0x10,
-MODE_TRUNCATE:                         0x20,
+  observe: function BSS__observe(subject, topic, data) {
+    switch (topic) {
+    case "app-startup":
+      let os = Cc["@mozilla.org/observer-service;1"].
+        getService(Ci.nsIObserverService);
+      os.addObserver(this, "sessionstore-windows-restored", true);
+      break;
+   /* The following event doesn't exist on Fennec; for Fennec loading, see
+    * fennec-weave-overlay.js.
+    */
+    case "sessionstore-windows-restored":
+      Cu.import("resource://weave-identity/service.js");
+      WeaveID.Service.onStartup();
+      break;
+    }
+  }
+};
 
-// File Permission flags
-PERMS_FILE:                            0644,
-PERMS_PASSFILE:                        0600,
-PERMS_DIRECTORY:                       0755,
+function NSGetModule(compMgr, fileSpec) {
+  return XPCOMUtils.generateModule([WeaveIDService]);
+}
 
-// Application IDs
-FIREFOX_ID:                            "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}",
-THUNDERBIRD_ID:                        "{3550f703-e582-4d05-9a08-453d09bdfdc6}",
-FENNEC_ID:                             "{a23983c0-fd0e-11dc-95ff-0800200c9a66}",
-SEAMONKEY_ID:                          "{92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}",
-}))];

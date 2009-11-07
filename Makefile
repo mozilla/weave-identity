@@ -40,14 +40,13 @@ objdir=dist
 stage_dir=$(objdir)/stage
 xpi_dir=$(objdir)/xpi
 
-weave_version := 0.8pre2
-compatible_version := 0.6pre3
+addon_name := weave-identity
+addon_version := 0.0.1
 
 ifeq ($(release_build),)
   xpi_type := dev
   server_url := https://weave-dev.services.mozilla.com/
-  server_url := https://auth.services.mozilla.com/
-  update_url := https://people.mozilla.com/~cbeard/weave/dist/update-dev.rdf
+  update_url := https://people.mozilla.com/~dmills/weave-identity/dist/update.rdf
 else
   xpi_type := rel
   server_url := https://auth.services.mozilla.com/
@@ -60,7 +59,7 @@ else
   update_url_tag := <em:updateURL>$(update_url)</em:updateURL>
 endif
 
-buildid ?= ${WEAVE_BUILDID}
+buildid ?= ${ADDON_BUILDID}
 buildid_short := $(buildid)
 ifeq ($(buildid),)
   date    := $(shell date -u +%Y%m%d%H%M)
@@ -70,7 +69,7 @@ ifeq ($(buildid),)
 endif
 ifeq ($(buildid),)
   $(warning Could not determine build id)
-  $(warning Install hg or set WEAVE_BUILDID the checkout id)
+  $(warning Install hg or set ADDON_BUILDID the checkout id)
   $(error)
 endif
 
@@ -84,15 +83,8 @@ else
   chrometarget=
 endif
 
-ifeq ($(rebuild_crypto),)
-  crypto_build_target =
-else
-  crypto_build_target = rebuild_all
-endif
-
 subst_names := \
-  weave_version \
-  compatible_version \
+  addon_version \
   buildid \
   buildid_short \
   server_url \
@@ -119,15 +111,12 @@ setup:
 	mkdir -p $(stage_dir)
 	mkdir -p $(xpi_dir)
 
-crypto: setup
-	$(MAKE) -C crypto $(crypto_build_target)
-
 chrome: setup
 	$(MAKE) -C source $(chrometarget)
 
-build: crypto chrome
+build: chrome
 
-xpi_name := weave-$(weave_version)-$(xpi_type).xpi
+xpi_name := $(addon_name)-$(addon_version)-$(xpi_type).xpi
 xpi_files := chrome/sync.jar defaults components modules platform \
              install.rdf chrome.manifest
 
@@ -144,7 +133,6 @@ clean:
 help:
 	@echo Targets:
 	@echo build
-	@echo "crypto (only updates the crypto directory)"
 	@echo "chrome (only updates the source directory)"
 	@echo "test (runs tests, runs a build first)"
 	@echo "xpi (sets manifest to use jars, make build to undo)"

@@ -11,10 +11,10 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is Bookmarks Sync.
+ * The Original Code is Bookmarks sync code.
  *
  * The Initial Developer of the Original Code is Mozilla.
- * Portions created by the Initial Developer are Copyright (C) 2007
+ * Portions created by the Initial Developer are Copyright (C) 2009
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -34,31 +34,13 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-// Process each item in the "constants hash" to add to "global" and give a name
-let EXPORTED_SYMBOLS = [((this[key] = val), key) for ([key, val] in Iterator({
+let WeaveIDFxOverlay = {
+  onLoad: function WeaveIDFx_onLoad() {
+    this._log = Log4Moz.repository.getLogger("FxWindow");
+  },
+  onUnload: function WeaveIDFx_onUnload() {
+  },
+};
 
-WEAVE_ID_VERSION:                      "@addon_version@",
-
-PREFS_BRANCH:                          "extensions.weave.id.",
-
-// Host "key" to access Weave Identity in the password manager
-PWDMGR_HOST:                           "chrome://weave",
-
-// File IO Flags
-MODE_RDONLY:                           0x01,
-MODE_WRONLY:                           0x02,
-MODE_CREATE:                           0x08,
-MODE_APPEND:                           0x10,
-MODE_TRUNCATE:                         0x20,
-
-// File Permission flags
-PERMS_FILE:                            0644,
-PERMS_PASSFILE:                        0600,
-PERMS_DIRECTORY:                       0755,
-
-// Application IDs
-FIREFOX_ID:                            "{ec8030f7-c20a-464f-9b0e-13a3a9e97384}",
-THUNDERBIRD_ID:                        "{3550f703-e582-4d05-9a08-453d09bdfdc6}",
-FENNEC_ID:                             "{a23983c0-fd0e-11dc-95ff-0800200c9a66}",
-SEAMONKEY_ID:                          "{92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}",
-}))];
+window.addEventListener("load", function(e) { WeaveIDFxOverlay.onLoad(e); }, false);
+window.addEventListener("unload", function (e) { WeaveIDFxOverlay.onUnload(e); }, false);

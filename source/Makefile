@@ -62,7 +62,7 @@ $(dotin_files): $(dotin_files:=.in)
 	rm -f $(destdir)/$@.in
 
 jar:
-	cd $(destdir)/chrome;rm -f sync.jar;zip -0r sync.jar *
+	cd $(destdir)/chrome;rm -f content.jar;zip -0r content.jar *
 
 subst: $(dotin_files)
 

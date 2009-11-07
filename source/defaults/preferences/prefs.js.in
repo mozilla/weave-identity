@@ -1,0 +1,11 @@
+pref("extensions.weave.id.lastversion", "firstrun");
+pref("extensions.weave.id.enabled", true);
+
+pref("extensions.weave.id.log.appender.console", "Warn");
+pref("extensions.weave.id.log.appender.dump", "Error");
+pref("extensions.weave.id.log.appender.debugLog", "Trace");
+pref("extensions.weave.id.log.rootLogger", "Trace");
+pref("extensions.weave.id.log.logger.service", "Trace");
+
+pref("extensions.weave.id.openId.enabled", true);
+pref("extensions.weave.id.authenticator.enabled", true);

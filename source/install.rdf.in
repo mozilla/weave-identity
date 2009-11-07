@@ -4,8 +4,8 @@
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
 
   <Description about="urn:mozilla:install-manifest">
-    <em:id>{340c2bbc-ce74-4362-90b5-7c26312808ef}</em:id>
-    <em:version>@weave_version@</em:version>
+    <em:id>{5e2f6fce-9590-49c3-946d-6356e68e961f}</em:id>
+    <em:version>@addon_version@</em:version>
     <em:type>2</em:type>
 
    
@@ -50,11 +50,11 @@
 
    
     <!-- Front End MetaData -->
-    <em:name>Weave</em:name>
-    <em:description>Weave is the Mozilla Labs prototype for online services.</em:description>
+    <em:name>Weave Identity</em:name>
+    <em:description>Weave Identity is part of the Weave framework, a Mozilla Labs project to explore online services.</em:description>
     <em:creator>Mozilla Labs Team</em:creator>
     <em:homepageURL>http://labs.mozilla.com/projects/weave/</em:homepageURL>
     @update_url_tag@
-    <em:iconURL>chrome://weave/skin/sync-32x32.png</em:iconURL>
+    <em:iconURL>chrome://weave-identity/skin/sync-32x32.png</em:iconURL>
   </Description>      
 </RDF>

@@ -34,37 +34,25 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://weave-identity/ext/Observers.js");
+Components.utils.import("resource://weave-identity/ext/log4moz.js");
+Components.utils.import("resource://weave-identity/service.js");
 
 let gWeaveAuthenticator = {
   //**************************************************************************//
   // Shortcuts
 
-  // The Preferences service that is imported from the Preferences module below.
-  get Preferences() {
-    delete this.Preferences;
-    Cu.import("resource://weave/ext/Preferences.js", this);
-    return this.Preferences;
-  },
-
   get Observers() {
     delete this.Observers;
-    Cu.import("resource://weave/ext/Observers.js", this);
+    Cu.import("resource://weave-identity/ext/Observers.js", this);
     return this.Observers;
   },
 
   get _log() {
     delete this._log;
     this._log = Log4Moz.repository.getLogger("Authenticator");
-    this._log.level = Log4Moz.Level[this._prefs.get("log.logger.authenticator",
-                                                    "Debug")];
-    return this._log;
-  },
-
-  get _log() {
-    delete this._log;
-    this._log = Log4Moz.repository.getLogger("Authenticator");
-    this._log.level = Log4Moz.Level[this._prefs.get("log.logger.authenticator",
+    this._log.level = Log4Moz.Level[WeaveID.Svc.Prefs.get("log.logger.authenticator",
                                                     "Debug")];
     return this._log;
   },
@@ -73,11 +61,6 @@ let gWeaveAuthenticator = {
     delete this._loginManager;
     return this._loginManager = Cc["@mozilla.org/login-manager;1"].
                                 getService(Ci.nsILoginManager);
-  },
-
-  get _prefs() {
-    delete this._prefs;
-    return this._prefs = new this.Preferences("extensions.weave.");
   },
 
   get _state() {
@@ -140,7 +123,7 @@ let gWeaveAuthenticator = {
   // Initialization/Destruction
 
   onLoad: function() {
-    if (this._prefs.get("authenticator.enabled")) {
+    if (WeaveID.Svc.Prefs.get("authenticator.enabled")) {
       this._icon.hidden = false;
       gBrowser.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
       gBrowser.addEventListener("DOMContentLoaded", this, true);
@@ -149,7 +132,7 @@ let gWeaveAuthenticator = {
   },
 
   onUnload: function() {
-    if (this._prefs.get("authenticator.enabled")) {
+    if (WeaveID.Svc.Prefs.get("authenticator.enabled")) {
       gBrowser.removeProgressListener(this);
       gBrowser.removeEventListener("DOMContentLoaded", this, true);
       this.Observers.remove("passwordmgr-found-logins", this.onPasswordMgrFoundLogins, this);
@@ -259,7 +242,7 @@ let gWeaveAuthenticator = {
         browser.currentURI.scheme == "https" &&
 
         // the auto-authenticate pref is true for the site
-        this._prefs.site(browser.currentURI).get("authenticator.auto") &&
+        WeaveID.Svc.Prefs.site(browser.currentURI).get("authenticator.auto") &&
 
         // the page is the last one in the session history, so users can
         // traverse history without losing control over their browser
@@ -279,7 +262,7 @@ let gWeaveAuthenticator = {
         this._submitForm(browser.auth.openIDField.form);
       }
       else { // browser.auth.formInfo
-        let loginInfo = JSON.parse(this._prefs.site(browser.currentURI).
+        let loginInfo = JSON.parse(WeaveID.Svc.Prefs.site(browser.currentURI).
                                    get("authenticator.auto.loginInfo"));
   
         let autoLoginInfo;
@@ -305,10 +288,10 @@ let gWeaveAuthenticator = {
   },
 
   onSignIn: function() {
-    this._prefs.site(gBrowser.mCurrentBrowser.currentURI).
+    WeaveID.Svc.Prefs.site(gBrowser.mCurrentBrowser.currentURI).
                 set("authenticator.auto", this._auto.checked);
     if (!this._auto.checked)
-      this._prefs.site(gBrowser.mCurrentBrowser.currentURI).
+      WeaveID.Svc.Prefs.site(gBrowser.mCurrentBrowser.currentURI).
                   reset("authenticator.auto.loginInfo");
 
     let item = this._list.selectedItem;
@@ -320,7 +303,7 @@ let gWeaveAuthenticator = {
         // Remove the password from the login info before saving it to prefs
         // so we don't store it in the clear.
         item.loginInfo.password = null;
-        this._prefs.site(gBrowser.mCurrentBrowser.currentURI).
+        WeaveID.Svc.Prefs.site(gBrowser.mCurrentBrowser.currentURI).
                     set("authenticator.auto.loginInfo",
                         JSON.stringify(item.loginInfo));
       }
@@ -344,7 +327,7 @@ let gWeaveAuthenticator = {
     this._list.removeAllItems();
 
     // Add an item for the OpenID field, if any.
-    if (this._prefs.get("openId.enabled") && browser.auth.openIDField)
+    if (WeaveID.Svc.Prefs.get("openId.enabled") && browser.auth.openIDField)
       item = this._list.appendItem("Weave");
 
     // Add items for found logins, if any.
@@ -373,7 +356,7 @@ let gWeaveAuthenticator = {
   },
 
   onDisableAutoAuth: function() {
-    this._prefs.site(gBrowser.mCurrentBrowser.currentURI).
+    WeaveID.Svc.Prefs.site(gBrowser.mCurrentBrowser.currentURI).
                 set("authenticator.auto", false);
     this._popup.hidePopup();
     this._updateView();
@@ -413,7 +396,7 @@ let gWeaveAuthenticator = {
     browser.auth = {};
 
     // Find the first OpenID field.
-    if (this._prefs.get("openId.enabled")) {
+    if (WeaveID.Svc.Prefs.get("openId.enabled")) {
       for (let i = 0; i < inputs.length; i++) {
         let element = inputs.item(i);
         if (element.type.search(/^hidden|text$/) == 0 &&
@@ -431,7 +414,7 @@ let gWeaveAuthenticator = {
 
     // The user's preference for auto-auth on this site.
     let autoAuth =
-      this._prefs.site(browser.currentURI).get("authenticator.auto");
+      WeaveID.Svc.Prefs.site(browser.currentURI).get("authenticator.auto");
 
     // Whether or not it's possible to authenticate automatically for this site.
     // Even if the user has enabled auto-auth, we still don't do it if the user

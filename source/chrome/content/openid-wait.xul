@@ -6,7 +6,7 @@
         title="OpenID Login">
         
     <vbox align="center">
-        <image src="chrome://weave/skin/mozchomp.gif"/>
+        <image src="chrome://weave-identity/skin/mozchomp.gif"/>
         <label value="Please wait while we sign you in..."/>
     </vbox>
 </window>

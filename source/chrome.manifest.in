@@ -1,27 +1,20 @@
 # Firefox only
-overlay chrome://browser/content/browser.xul chrome://weave/content/sync.xul application={ec8030f7-c20a-464f-9b0e-13a3a9e97384}
-overlay chrome://browser/content/browser.xul chrome://weave/content/fx-weave-overlay.xul application={ec8030f7-c20a-464f-9b0e-13a3a9e97384}
-
-# Fennec only
-overlay chrome://browser/content/browser.xul chrome://weave/content/fennec-weave-overlay.xul application={a23983c0-fd0e-11dc-95ff-0800200c9a66}
-
-# Thunderbird only
-overlay chrome://messenger/content/messenger.xul chrome://weave/content/sync.xul application={3550f703-e582-4d05-9a08-453d09bdfdc6}
-overlay chrome://messenger/content/messenger.xul chrome://weave/content/tb-weave-overlay.xul application={3550f703-e582-4d05-9a08-453d09bdfdc6}
+overlay chrome://browser/content/browser.xul chrome://weave-identity/content/overlay.xul application={ec8030f7-c20a-464f-9b0e-13a3a9e97384}
+overlay chrome://browser/content/browser.xul chrome://weave-identity/content/overlay-firefox.xul application={ec8030f7-c20a-464f-9b0e-13a3a9e97384}
 
 # Seamonkey only
-overlay chrome://navigator/content/navigator.xul chrome://weave/content/sync.xul application={92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}
-overlay chrome://navigator/content/navigator.xul chrome://weave/content/fx-weave-overlay.xul application={92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}
-overlay chrome://messenger/content/messenger.xul chrome://weave/content/sync.xul application={92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}
+overlay chrome://navigator/content/navigator.xul chrome://weave-identity/content/overlay.xul application={92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}
+overlay chrome://navigator/content/navigator.xul chrome://weave-identity/content/overlay-firefox.xul application={92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}
+overlay chrome://messenger/content/messenger.xul chrome://weave-identity/content/overlay.xul application={92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}
 
 
-@unpacked@content weave chrome/content/
-@jar@content weave jar:chrome/sync.jar!/content/
+@unpacked@content weave-identity chrome/content/
+@jar@content weave-identity jar:chrome/content.jar!/content/
 
-@unpacked@skin weave class/1.0 chrome/skin/
-@jar@skin weave class/1.0 jar:chrome/sync.jar!/skin/
+@unpacked@skin weave-identity class/1.0 chrome/skin/
+@jar@skin weave-identity class/1.0 jar:chrome/content.jar!/skin/
 
-@unpacked@locale weave en-US chrome/locale/en-US/
-@jar@locale weave en-US jar:chrome/sync.jar!/locale/en-US/
+@unpacked@locale weave-identity en-US chrome/locale/en-US/
+@jar@locale weave-identity en-US jar:chrome/content.jar!/locale/en-US/
 
-resource weave modules/
+resource weave-identity modules/

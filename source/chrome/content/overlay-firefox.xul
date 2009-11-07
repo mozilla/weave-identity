@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="chrome://weave-identity/content/sync.css" type="text/css"?>
+<?xml-stylesheet href="chrome://weave-identity/content/notification.css" type="text/css"?>
+
+<!DOCTYPE overlay SYSTEM "chrome://weave-identity/locale/sync.dtd">
+<overlay id="fx-weave-overlay"
+         xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+
+  <script type="application/x-javascript"
+          src="chrome://weave-identity/content/overlay-firefox.js"/>
+
+  <stringbundleset id="stringbundleset">
+    <stringbundle id="weaveStringBundle"
+                  src="chrome://weave-identity/locale/sync.properties"/>
+  </stringbundleset>
+</overlay>
