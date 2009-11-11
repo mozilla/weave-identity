@@ -65,42 +65,42 @@ let gWeaveAuthenticator = {
 
   get _state() {
     delete this._state;
-    return this._state = document.getElementById("sync-auth-state");
+    return this._state = document.getElementById("acct-auth-state");
   },
 
   get _icon() {
     delete this._icon;
-    return this._icon = document.getElementById("sync-auth-icon");
+    return this._icon = document.getElementById("acct-auth-icon");
   },
 
   get _popup() {
     delete this._popup;
-    return this._popup = document.getElementById("sync-auth-popup");
+    return this._popup = document.getElementById("acct-auth-popup");
   },
 
   get _list() {
     delete this._list;
-    return this._list = document.getElementById("sync-auth-list");
+    return this._list = document.getElementById("acct-auth-list");
   },
 
   get _auto() {
     delete this._auto;
-    return this._auto = document.getElementById("sync-auth-auto");
+    return this._auto = document.getElementById("acct-auth-auto");
   },
 
   get _signIn() {
     delete this._signIn;
-    return this._signIn = document.getElementById("sync-auth-signIn");
+    return this._signIn = document.getElementById("acct-auth-signIn");
   },
 
   get _autoDesc() {
     delete this._autoDesc;
-    return this._autoDesc = document.getElementById("sync-auth-autoDesc");
+    return this._autoDesc = document.getElementById("acct-auth-autoDesc");
   },
 
   get _disableAuto() {
     delete this._disableAuto;
-    return this._disableAuto = document.getElementById("sync-auth-disableAuto");
+    return this._disableAuto = document.getElementById("acct-auth-disableAuto");
   },
 
   // The times of automatic authentications, indexed by site.  We use this

@@ -40,17 +40,13 @@ objdir=dist
 stage_dir=$(objdir)/stage
 xpi_dir=$(objdir)/xpi
 
-addon_name := weave-identity
+addon_name := account-manager
 addon_version := 0.0.1
 
 ifeq ($(release_build),)
   xpi_type := dev
-  server_url := https://weave-dev.services.mozilla.com/
-  update_url := https://people.mozilla.com/~dmills/weave-identity/dist/update.rdf
 else
   xpi_type := rel
-  server_url := https://auth.services.mozilla.com/
-  update_url :=
 endif
 
 ifeq ($(update_url),)
@@ -117,7 +113,7 @@ chrome: setup
 build: chrome
 
 xpi_name := $(addon_name)-$(addon_version)-$(xpi_type).xpi
-xpi_files := chrome/sync.jar defaults components modules platform \
+xpi_files := chrome/content.jar defaults components modules platform \
              install.rdf chrome.manifest
 
 xpi: build
@@ -128,7 +124,6 @@ xpi: build
 clean:
 	rm -rf $(objdir)
 	$(MAKE) -C tests/unit clean
-	$(MAKE) -C crypto/src clean
 
 help:
 	@echo Targets:
