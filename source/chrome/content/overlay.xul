@@ -8,8 +8,10 @@
     <script type="application/x-javascript"
             src="chrome://weave-identity/content/overlay.js"/>
     <script type="application/x-javascript"
-            src="chrome://weave-identity/content/authenticator.js"/>
-
+            src="chrome://weave-identity/content/openid.js"/>
+    <script type="application/x-javascript"
+            src="chrome://weave-identity/content/authenticator.js"/>	
+			
     <stringbundleset id="stringbundleset">
         <stringbundle id="weaveStringBundle"
                       src="chrome://weave-identity/locale/overlay.properties"/>
