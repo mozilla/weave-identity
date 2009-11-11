@@ -1,1 +1,0 @@
-/Users/anant/Code/weave-identity/source/chrome/content/openid.js
