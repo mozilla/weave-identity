@@ -64,7 +64,7 @@ var gOpenIDProviderListener = {
 const PWDMGR_HOST = "chrome://weave";
 const PWDMGR_REALM = "Mozilla Services Password";
 const OPENID_SERVICE_URI = "services.mozilla.com/openid/";
-const OPENID_PREF = "extensions.weave.openId.enabled";
+const OPENID_PREF = "extensions.weave.id.openId.enabled";
 const OPENID_USERNAME = "extensions.weave.username";
 
 /* When we find an openID field, grey it out and put the user's Weave-based openID URI into
