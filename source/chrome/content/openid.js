@@ -66,6 +66,7 @@ const PWDMGR_REALM = "Mozilla Services Password";
 const OPENID_SERVICE_URI = "services.mozilla.com/openid/";
 const OPENID_PREF = "extensions.weave.id.openId.enabled";
 const OPENID_USERNAME = "extensions.weave.username";
+const OPENID_CUSTOM_PREF = "extensions.weave.id.openId.custom";
 
 /* When we find an openID field, grey it out and put the user's Weave-based openID URI into
  * it, while changing the submit button to say "Sign In with Weave".  But only do this if
@@ -126,9 +127,15 @@ var gOpenIdMunger = {
     let i;
 
     // Can't replace OpenID fields without a weave id
-    let weaveUsername = gOpenIdMunger._prefs.getCharPref(OPENID_USERNAME);
-    if (weaveUsername == "")
-      return;
+    let openidEndpoint;  
+    try {
+      openidEndpoint = gOpenIdMunger._prefs.getCharPref(OPENID_CUSTOM_PREF);
+    } catch (e) {
+      let weaveUsername = gOpenIdMunger._prefs.getCharPref(OPENID_USERNAME);
+      if (weaveUsername == "")
+        return;
+      openidEndpoint = OPENID_SERVICE_URI + weaveUsername;
+    }
 
     // Find text input fields for OpenID identifiers:
     for (i = 0; i < inputs.length; i++) {
@@ -148,7 +155,7 @@ var gOpenIdMunger = {
          * behavior but that seems to be how it works at least in firefox 3.5.
          */
         elem.type = "hidden";
-        elem.value = OPENID_SERVICE_URI + weaveUsername;
+        elem.value = openidEndpoint;
 
         let form = elem.form;
         let formChildren = form.getElementsByTagName("input");
