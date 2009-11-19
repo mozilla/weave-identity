@@ -13,7 +13,7 @@
             src="chrome://weave-identity/content/authenticator.js"/>	
 			
     <stringbundleset id="stringbundleset">
-        <stringbundle id="weaveStringBundle"
+        <stringbundle id="weaveidStringBundle"
                       src="chrome://weave-identity/locale/overlay.properties"/>
     </stringbundleset>
 
