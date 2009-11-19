@@ -36,6 +36,9 @@
  *
  * ***** END LICENSE BLOCK ***** */
  
+Components.utils.import("resource://weave-identity/service.js");
+Components.utils.import("resource://weave-identity/ext/Preferences.js");
+
 /* Look at incoming pages for OpenID forms and munge them.
    This is hacky and makes a lot of unjustified assumptions about forms. */
 
@@ -64,9 +67,9 @@ var gOpenIDProviderListener = {
 const PWDMGR_HOST = "chrome://weave";
 const PWDMGR_REALM = "Mozilla Services Password";
 const OPENID_SERVICE_URI = "services.mozilla.com/openid/";
-const OPENID_PREF = "extensions.weave.id.openId.enabled";
-const OPENID_USERNAME = "extensions.weave.username";
-const OPENID_CUSTOM_PREF = "extensions.weave.id.openId.custom";
+const OPENID_PREF = "openId.enabled";
+const OPENID_CUSTOM_PREF = "openId.custom";
+const WEAVE_USERNAME = "extensions.weave.username";
 
 /* When we find an openID field, grey it out and put the user's Weave-based openID URI into
  * it, while changing the submit button to say "Sign In with Weave".  But only do this if
@@ -74,12 +77,6 @@ const OPENID_CUSTOM_PREF = "extensions.weave.id.openId.custom";
  */
 
 var gOpenIdMunger = {
-  _prefs: null,
-  get _prefs() {
-    return Components.classes["@mozilla.org/preferences-service;1"]
-      .getService(Components.interfaces.nsIPrefBranch);
-  },
-  
   _logins: null,
   get _logins() {
     return Components.classes["@mozilla.org/login-manager;1"]
@@ -89,7 +86,7 @@ var gOpenIdMunger = {
   
   init: function() {
     /* Listen for webpage loads */
-    if (gOpenIdMunger._prefs.getBoolPref(OPENID_PREF)) {
+    if (WeaveID.Svc.Prefs.get(OPENID_PREF)) {
       if (typeof(gBrowser) != "undefined") {
         var appcontent = document.getElementById("appcontent");   // browser
         if (appcontent) {
@@ -107,7 +104,7 @@ var gOpenIdMunger = {
   },
 
   uninit: function() {
-    if (gOpenIdMunger._prefs.getBoolPref(OPENID_PREF)) {
+    if (WeaveID.Svc.Prefs.get(OPENID_PREF)) {
       if (typeof(gBrowser) != "undefined") {
         var appcontent = document.getElementById("appcontent");   // browser
         if (appcontent) {
@@ -126,15 +123,14 @@ var gOpenIdMunger = {
     let inputs = theDoc.getElementsByTagName("input");
     let i;
 
-    // Can't replace OpenID fields without a weave id
-    let openidEndpoint;  
-    try {
-      openidEndpoint = gOpenIdMunger._prefs.getCharPref(OPENID_CUSTOM_PREF);
-    } catch (e) {
-      let weaveUsername = gOpenIdMunger._prefs.getCharPref(OPENID_USERNAME);
-      if (weaveUsername == "")
+    // Make sure we have an endpoint. We need either a user-specified URL,
+    // or a Weave username
+    let openidEndpoint = WeaveID.Svc.Prefs.get(OPENID_CUSTOM_PREF);
+    if (!openidEndpoint) {
+      let weaveUser = Preferences.get(WEAVE_USERNAME);
+      if (!weaveUser)
         return;
-      openidEndpoint = OPENID_SERVICE_URI + weaveUsername;
+      openidEndpoint = OPENID_SERVICE_URI + weaveUser;
     }
 
     // Find text input fields for OpenID identifiers:
@@ -233,7 +229,7 @@ var gOpenIdMunger = {
 
   authorize: function (rurl, root, cb) {
     let req = new XMLHttpRequest();
-    let usr = gOpenIdMunger._prefs.getCharPref(OPENID_USERNAME);
+    let usr = Preferences.get(WEAVE_USERNAME);
     
     // Fetch password from LoginManager
     let pwd = null;
