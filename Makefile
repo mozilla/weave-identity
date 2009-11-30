@@ -41,7 +41,7 @@ stage_dir=$(objdir)/stage
 xpi_dir=$(objdir)/xpi
 
 addon_name := account-manager
-addon_version := 0.0.1
+addon_version := 0.0.2
 
 ifeq ($(release_build),)
   xpi_type := dev
