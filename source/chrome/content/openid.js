@@ -66,7 +66,7 @@ var gOpenIDProviderListener = {
 
 const PWDMGR_HOST = "chrome://weave";
 const PWDMGR_REALM = "Mozilla Services Password";
-const OPENID_SERVICE_URI = "services.mozilla.com/openid/";
+const OPENID_SERVICE_URI = "https://services.mozilla.com/openid/";
 const OPENID_PREF = "openId.enabled";
 const OPENID_CUSTOM_PREF = "openId.custom";
 const WEAVE_USERNAME = "extensions.weave.username";
@@ -181,8 +181,7 @@ var gOpenIdMunger = {
 
   processNewURL: function(aURI, domWin) {
     let spec = aURI.spec;
-    if (spec.substr(0, 37) ==
-        'https://services.mozilla.com/openid/?') {
+    if (spec.substr(0, 37) == OPENID_SERVICE_URI + '?') {
 
       let loadUrl = function(url) domWin.location = url;
       if (domWin.location != spec) {
@@ -205,7 +204,8 @@ var gOpenIdMunger = {
       let params = pstring.split('&');
       let retURI = false;
       let rootURI = false;
-
+      let handle = false;
+			
       for (let i = 0; i < params.length; i++) {
         if (params[i].substr(0, 16)  == "openid.return_to") {
           retURI = params[i].split('=');
@@ -215,6 +215,10 @@ var gOpenIdMunger = {
           rootURI = params[i].split('=');
           rootURI = decodeURIComponent(rootURI[1]);
         }
+        if (params[i].substr(0, 19)  == "openid.assoc_handle") {
+          handle = params[i].split('=');
+          handle = decodeURIComponent(handle[1]);
+        }
       }
 
       if (!retURI) {
@@ -223,11 +227,11 @@ var gOpenIdMunger = {
       }
 
       /* Make the request */
-      this.authorize(retURI, rootURI, redirect);
+      this.authorize(retURI, rootURI, handle, redirect);
     }
   },
 
-  authorize: function (rurl, root, cb) {
+  authorize: function (rurl, root, handle, cb) {
     let req = new XMLHttpRequest();
     let usr = Preferences.get(WEAVE_USERNAME);
     
@@ -237,15 +241,16 @@ var gOpenIdMunger = {
       if (login.username == usr)
         pwd = login.password;
 
-    usr = "https://services.mozilla.com/openid/" + usr;
     let params = 'openid_identity=' + encodeURIComponent(usr);
     params = params + '&weave_pwd=' + encodeURIComponent(pwd);
     params = params + '&openid_return_to=' + encodeURIComponent(rurl);
 
     if (root)
       params = params + '&openid_trust_root=' + encodeURIComponent(root);
-
-    let uri = 'https://services.mozilla.com/openid/?openid.mode=authorize_site';
+    if (handle)
+      params = params + '&openid_assoc_handle=' + encodeURIComponent(handle);
+			
+    let uri = OPENID_SERVICE_URI + '?openid.mode=authorize_site';
     req.onreadystatechange = function(e) {
       if (req.readyState == 4) {
         /* Our job is to just redirect,
