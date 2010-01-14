@@ -1,37 +1,68 @@
-#acct-auth-icon[state="disabled"] {
+#acct-auth-icon[state="signed_out"] {
   list-style-image: url("chrome://weave-identity/skin/auth-disabled.png");
 }
 
-#acct-auth-icon[state="enabled"] {
+#acct-auth-icon[state="signed_in"] {
   list-style-image: url("chrome://weave-identity/skin/auth-enabled.png");
 }
 
-#acct-auth-icon[state="auto"] {
+#acct-auth-icon[state="signing_in"] {
   list-style-image: url("chrome://weave-identity/skin/auth-auto.png");
 }
 
 
 /* Show the appropriate part of the panel based on the current state. */
 
-#acct-auth-popup-disabled,
-#acct-auth-popup-enabled,
-#acct-auth-popup-auto {
-  display: none;
+#acct-auth-popup {
+    -moz-appearance: none;
+    -moz-border-image: url(chrome://browser/skin/hud-panel.png)
+      26 50 22 18 / 26px 50px 22px 18px repeat;
+    color: rgb(255, 255, 255);
+    background-color: transparent;
 }
-
-#acct-auth-popup[state="disabled"] > #acct-auth-popup-disabled,
-#acct-auth-popup[state="enabled"] > #acct-auth-popup-enabled,
-#acct-auth-popup[state="auto"] > #acct-auth-popup-auto {
+#acct-auth-popup > * {
+    display: none;
+    padding: 5px;
+    font-size: 14px;
+    margin-right: -30px;
+    margin-bottom: -8px;
+}
+#acct-auth-popup[state=""] > #acct-auth-popup-can-register,
+#acct-auth-popup[state="signed_in"] > #acct-auth-popup-signed-in,
+#acct-auth-popup[state="signed_out"] > #acct-auth-popup-signed-out {
   display: -moz-box;
-  padding: 5px;
 }
 
-/* Show the specified message. */
+/* HUD buttons */
 
-#acct-auth-message-unencrypted {
-  display: none;
+#acct-auth-popup button {
+  -moz-appearance: none;
+  background: url("chrome://browser/skin/hud-style-button-middle-background.png")
+    repeat-x #464646 center center;
+  border-width: 3px;
+  border-style: solid;
+  -moz-border-radius: 20px;
+  -moz-border-top-colors: rgba(0,0,0,0.35) rgba(26,26,26,0.5) rgba(255,255,255,0.4);
+  -moz-border-right-colors: rgba(0,0,0,0.35) rgba(26,26,26,0.5) rgba(255,255,255,0.4);
+  -moz-border-bottom-colors: rgba(128,128,128,0.35) rgba(0,0,0,0.5) rgba(255,255,255,0.15);
+  -moz-border-left-colors: rgba(0,0,0,0.35) rgba(26,26,26,0.5) rgba(255,255,255,0.4);
+  padding: 0 9px;
+  margin: 6px;
+  min-width: 79px;
+  min-height: 22px;
+  color: #ffffff;
 }
 
-#acct-auth-popup[message="unencrypted"] > #acct-auth-message > #acct-auth-message-unencrypted {
-  display: -moz-box;
+#acct-auth-popup button:hover:active {
+  background-color: #86888B;
+}
+
+#acct-auth-popup button:focus {
+  outline: 2px solid -moz-mac-focusring;
+  outline-offset: -2px;
+  -moz-outline-radius: 100%;
+}
+
+#acct-auth-popup button[default="true"] {
+  background-color: #666;
 }

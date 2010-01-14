@@ -345,7 +345,7 @@ let Utils = {
   },
 
   lazyStrings: function Weave_lazyStrings(name) {
-    let bundle = "chrome://weave/locale/" + name + ".properties";
+    let bundle = "chrome://weave-identity/locale/" + name + ".properties";
     return function() new StringBundle(bundle);
   },
 
@@ -792,5 +792,5 @@ Svc.Prefs = new Preferences(PREFS_BRANCH);
 ].forEach(function(lazy) Utils.lazySvc(Svc, lazy[0], lazy[1], Ci[lazy[2]]));
 
 let Str = {};
-["about", "errors"]
+["overlay"]
   .forEach(function(lazy) Utils.lazy2(Str, lazy, Utils.lazyStrings(lazy)));

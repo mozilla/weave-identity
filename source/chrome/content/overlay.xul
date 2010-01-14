@@ -1,20 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?xml-stylesheet href="chrome://weave-identity/content/overlay.css" type="text/css"?>
 <?xml-stylesheet href="chrome://weave-identity/content/notification.css" type="text/css"?>
 
 <!DOCTYPE overlay SYSTEM "chrome://weave-identity/locale/overlay.dtd">
+
 <overlay id="acct-overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
     <script type="application/x-javascript"
-            src="chrome://weave-identity/content/overlay.js"/>
-    <script type="application/x-javascript"
-            src="chrome://weave-identity/content/openid.js"/>
-    <script type="application/x-javascript"
-            src="chrome://weave-identity/content/authenticator.js"/>	
+            src="chrome://weave-identity/content/authenticator.js"/>
 			
     <stringbundleset id="stringbundleset">
-        <stringbundle id="weaveidStringBundle"
-                      src="chrome://weave-identity/locale/overlay.properties"/>
+      <stringbundle id="acct-auth-strings"
+                    src="chrome://weave-identity/locale/overlay.properties"/>
     </stringbundleset>
 
     <broadcasterset id="mainBroadcasterSet">
@@ -22,47 +20,28 @@
     </broadcasterset>
 
     <popupset id="mainPopupSet">
-      <panel id="acct-auth-popup" position="after_start"
+      <panel id="acct-auth-popup"
              observes="acct-auth-state"
-             onpopupshowing="gWeaveAuthenticator.onPopupShowing(event)">
-        <vbox id="acct-auth-popup-disabled">
-          <description>
-            Weave cannot sign you in to this site on this page.
-          </description>
+             onpopupshowing="gWeaveAuthenticator.onPopupShowing(event);">
+        <vbox id="acct-auth-popup-can-register">
+          <description id="acct-auth-can-register-desc"></description>
         </vbox>
-        <vbox id="acct-auth-popup-enabled">
-          <description>
-            Weave can sign you in to this site.
-          </description>
-          <menulist id="acct-auth-list"
-                    onselect="gWeaveAuthenticator.onSelectItem()">
-            <menupopup/>
-          </menulist>
-          <checkbox id="acct-auth-auto"
-                    label="do this automatically from now on"/>
-          <button id="acct-auth-signIn" label="Sign In"
-                  oncommand="gWeaveAuthenticator.onSignIn()"/>
+        <vbox id="acct-auth-popup-signed-in">
+          <description id="acct-auth-signed-in-desc"></description>
+          <button label="Disconnect" oncommand="gWeaveAuthenticator.onDisconnect();"/>
         </vbox>
-        <vbox id="acct-auth-popup-auto">
-          <description>
-            Weave will sign you in to this site automatically.
-          </description>
-          <button id="acct-auth-disableAuto"
-                  label="Stop Signing In Automatically"
-                  oncommand="gWeaveAuthenticator.onDisableAutoAuth()"/>
+        <vbox id="acct-auth-popup-signed-out">
+          <description id="acct-auth-signed-out-desc">Connect to this site</description>
+          <description>to see personalized content:</description>
+          <button label="Connect" oncommand="gWeaveAuthenticator.onConnect();"/>
         </vbox>
-        <box id="acct-auth-message">
-          <description id="acct-auth-message-unencrypted" width="250">
-            Weave can't sign you in to this web site automatically
-            because your connection to the site is not encrypted.
-          </description>
-        </box>
       </panel>
     </popupset>
 
     <hbox id="urlbar-icons">
       <image id="acct-auth-icon" class="urlbar-icon" hidden="true"
              observes="acct-auth-state"
-             insertbefore="feed-button" popup="acct-auth-popup"/>
+             insertbefore="feed-button"
+             onclick="gWeaveAuthenticator.onIconClick(event);"/>
     </hbox>
 </overlay>

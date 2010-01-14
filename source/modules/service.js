@@ -43,14 +43,10 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
-// how long we should wait before actually syncing on idle
-const IDLE_TIME = 5; // xxxmpc: in seconds, should be preffable
-
-// How long before refreshing the cluster
-const CLUSTER_BACKOFF = 5 * 60 * 1000; // 5 minutes
-
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://weave-identity/ext/log4moz.js");
+Cu.import("resource://weave-identity/ext/Observers.js");
+Cu.import("resource://weave-identity/ext/resource.js");
 Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
 
@@ -67,57 +63,16 @@ Utils.lazy(WeaveID, 'Service', WeaveIDSvc);
  */
 
 function WeaveIDSvc() {
-  this._notify = Utils.notify("weave-id:service:");
+  this.realms = {};
 }
 WeaveIDSvc.prototype = {
 
-  _lock: Utils.lock,
-  _catch: Utils.catch,
-  _isQuitting: false,
-
-  get enabled() { return Svc.Prefs.get("enabled"); },
-  set enabled(value) { Svc.Prefs.set("enabled", value); },
-
-  get locked() { return this._locked; },
-  lock: function Svc_lock() {
-    if (this._locked)
-      return false;
-    this._locked = true;
-    return true;
-  },
-  unlock: function Svc_unlock() {
-    this._locked = false;
-  },
-
-  onWindowOpened: function WeaveID__onWindowOpened() {
-  },
-
-  /**
-   * Startup stuff.
-   * Note: Beware of adding more here, put as much as possible in _delayedStartup
-   */
+  // this gets called on app startup by an xpcom component
   onStartup: function onStartup() {
-    // Figure out how many seconds to delay loading Weave based on the app
-    let wait = 0;
-    switch (Svc.AppInfo.ID) {
-      case FIREFOX_ID:
-        // Add one second delay for each tab in every window
-        let enum = Svc.WinMediator.getEnumerator("navigator:browser");
-        while (enum.hasMoreElements())
-          wait += enum.getNext().gBrowser.mTabs.length;
-    }
-
-    // Make sure we wait a little but but not too long in the worst case
-    wait = Math.ceil(Math.max(5, Math.min(20, wait)));
-    Utils.delay(this._delayedStartup, wait * 1000, this, "_startupTimer");
-  },
-
-  // delayed startup
-  _delayedStartup: function _delayedStartup() {
-    Utils.prefs.addObserver("", this, false);
-    Svc.Observer.addObserver(this, "network:offline-status-changed", true);
-    Svc.Observer.addObserver(this, "private-browsing", true);
-    Svc.Observer.addObserver(this, "quit-application", true);
+    //Utils.prefs.addObserver("", this, false);
+    //Observers.add("network:offline-status-changed", this._onOfflineToggle, this);
+    //Observers.add("private-browsing", this._onPrivateBrowsingToggle, this);
+    //Observers.add("quit-application", this._onQuitApplication, this);
 
     let ua = Cc["@mozilla.org/network/protocol;1?name=http"].
       getService(Ci.nsIHttpProtocolHandler).userAgent;
@@ -143,45 +98,114 @@ WeaveIDSvc.prototype = {
     let dapp = new Log4Moz.DumpAppender(formatter);
     dapp.level = Log4Moz.Level[Svc.Prefs.get("log.appender.dump")];
     root.addAppender(dapp);
-
-    let verbose = Svc.Directory.get("ProfD", Ci.nsIFile);
-    verbose.QueryInterface(Ci.nsILocalFile);
-    verbose.append("weave-id-log.txt");
-    if (!verbose.exists())
-      verbose.create(verbose.NORMAL_FILE_TYPE, PERMS_FILE);
-
-    this._debugApp = new Log4Moz.RotatingFileAppender(verbose, formatter);
-    this._debugApp.level = Log4Moz.Level[Svc.Prefs.get("log.appender.debugLog")];
-    root.addAppender(this._debugApp);
   },
 
-  clearLogs: function WeaveID_clearLogs() {
-    this._debugApp.clear();
-  },
+  updateRealm: function WeaveID_updateRealm(url, curId) {
+    // FIXME: also refresh after a timeout
+    if (!this.realms[url]) {
+      this._log.trace("Downloading AMCD");
+      this.realms[url] = new Realm(url);
+      this.realms[url].refreshAmcd();
+    }
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
-                                         Ci.nsISupportsWeakReference]),
+    if (curId) {
+      this.realms[url].signinState = Realm.SIGNED_IN;
+      this.realms[url].curId = curId;
+    } else {
+      this.realms[url].signinState = Realm.SIGNED_OUT;
+      this.realms[url].curId = "";
+    }
 
-  // nsIObserver
+    Observers.notify("weaveid-realm-updated", url);
+  }
+};
 
-  observe: function WeaveID__observe(subject, topic, data) {
-    switch (topic) {
-      case "nsPref:changed":
-        switch (data) {
-          case "enabled":
-            break;
-        }
-        break;
-      case "network:offline-status-changed":
-        break;
-      case "private-browsing":
-        break;
-      case "quit-application":
-        this._onQuitApplication();
-        break;
+function Realm(amcdUrl) {
+  this.amcdState = this.STATE_UNKNOWN;
+  this.desiredState = this.STATE_UNKNOWN;
+  this.signinState = this.STATE_UNKNOWN;
+  this.amcdUrl = amcdUrl;
+  this.curId = "";
+}
+Realm.prototype = {
+  // Used for amcdState, desiredState, signinState
+  STATE_UNKNOWN: "unknown",
+
+  // AMCD states
+  amcdState: null,
+  AMCD_NOT_SUPPORTED: "amcd_not_supported",
+  AMCD_DOWNLOADING: "amcd_downloading",
+  AMCD_OK: "amcd_ok",
+  AMCD_DOWNLOAD_ERROR: "amcd_download_error",
+  AMCD_PARSE_ERROR: "amcd_parse_error",
+
+  // desired state
+  desiredState: null,
+  SIGN_IN_WANTED: "sign_in_wanted",
+  SIGN_OUT_WANTED: "sign_out_wanted",
+
+  // actual state
+  signinState: null,
+  SIGNING_IN: "signing_in",
+  SIGNED_IN: "signed_in",
+  SIGNED_OUT: "signed_out",
+
+  refreshAmcd: function Realm_refreshAmcd() {
+    this.amcdState = this.AMCD_DOWNLOADING;
+
+    let res = new Resource(this.amcdUrl);
+    let ret = res.get();
+
+    if (ret.success) {
+      try {
+        this._amcd = ret.obj;
+        this.amcdState = this.AMCD_OK;
+      } catch (e) {
+        this.amcdState = this.AMCD_PARSE_ERROR;
+      }
+    } else {
+      this.amcdState = this.AMCD_DOWNLOAD_ERROR;
+      dump("could not download amcd: " + this.amcdUrl + "\n"); // xxx
     }
   },
 
-  _onQuitApplication: function WeaveID__onQuitApplication() {
-  }
+  get name() {
+    return this._amcd.name;
+  },
+
+  get domain() {
+    if (this._domain)
+      return this._domain;
+
+    let domain = new String(this._amcd.domain);
+    domain.obj = WeaveID.Utils.makeURL(domain);
+    if (domain[domain.length - 1] == '/')
+      domain.noslash = domain.slice(0, domain.length - 1);
+    else
+      domain.noslash = this._amcd.domain;
+
+    // cache it for next time
+    return this._domain = domain;
+  },
+
+  connect: function() {
+    if (this._amcd.methods.connect) {
+      let connect = this._amcd.methods.connect.POST;
+      let logins = this._getLogins(this._realm.domain.noslash);
+      let username, password;
+      if (logins && logins.length > 0) {
+        username = logins[0].username;
+        password = logins[0].password;
+      }
+
+      let res = new Resource(this._realm.domain.obj.resolve(connect.path));
+      res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      res.post(connect.params.username + '=' + username + '&' +
+               connect.params.password + '=' + password);
+      gBrowser.mCurrentBrowser.reload();
+      this._popup.hidePopup();
+    }
+  },
+
 };
+Realm.__proto__ = Realm.prototype; // So that Realm.STATE_* work
