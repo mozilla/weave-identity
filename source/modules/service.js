@@ -188,24 +188,43 @@ Realm.prototype = {
     return this._domain = domain;
   },
 
+  _getLogins: function(domain, username) {
+    let logins = Svc.Login.findLogins({}, domain, domain, null);
+
+    if (!username)
+      return logins;
+
+    for each (let login in logins) {
+      if (login.username == username)
+        return login;
+    }
+
+    return null;
+  },
+
   connect: function() {
     if (this._amcd.methods.connect) {
       let connect = this._amcd.methods.connect.POST;
-      let logins = this._getLogins(this._realm.domain.noslash);
+      let logins = this._getLogins(this.domain.noslash);
       let username, password;
       if (logins && logins.length > 0) {
         username = logins[0].username;
         password = logins[0].password;
       }
 
-      let res = new Resource(this._realm.domain.obj.resolve(connect.path));
+      let res = new Resource(this.domain.obj.resolve(connect.path));
       res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
       res.post(connect.params.username + '=' + username + '&' +
                connect.params.password + '=' + password);
-      gBrowser.mCurrentBrowser.reload();
-      this._popup.hidePopup();
     }
   },
 
+  disconnect: function() {
+    if (this._amcd.methods.disconnect.POST) {
+      let disconnect = this._amcd.methods.disconnect.POST;
+      let res = new Resource(this.domain.obj.resolve(disconnect.path));
+      res.get();
+    }
+  },
 };
 Realm.__proto__ = Realm.prototype; // So that Realm.STATE_* work

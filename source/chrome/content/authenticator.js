@@ -171,36 +171,15 @@ let gWeaveAuthenticator = {
   },
 
   onConnect: function() {
-    let amcd = this._realm._amcd;
-
-    if (amcd.methods.connect) {
-      let connect = amcd.methods.connect.POST;
-      let logins = this._getLogins(this._realm.domain.noslash);
-      let username, password;
-      if (logins && logins.length > 0) {
-        username = logins[0].username;
-        password = logins[0].password;
-      }
-
-      let res = new Resource(this._realm.domain.obj.resolve(connect.path));
-      res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-      res.post(connect.params.username + '=' + username + '&' +
-               connect.params.password + '=' + password);
-      gBrowser.mCurrentBrowser.reload();
-      this._popup.hidePopup();
-    }
+    this._realm.connect();
+    gBrowser.mCurrentBrowser.reload();
+    this._popup.hidePopup();
   },
 
   onDisconnect: function() {
-    let amcd = this._realm._amcd;
-
-    if (amcd.methods.disconnect.POST) {
-      let disconnect = amcd.methods.disconnect.POST;
-      let res = new Resource(this._realm.domain.obj.resolve(disconnect.path));
-      res.get();
-      gBrowser.mCurrentBrowser.reload();
-      this._popup.hidePopup();
-    }
+    this._realm.disconnect();
+    gBrowser.mCurrentBrowser.reload();
+    this._popup.hidePopup();
   },
 
   // nsILoginManager stuff
