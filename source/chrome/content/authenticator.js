@@ -77,8 +77,14 @@ let gWeaveAuthenticator = {
     return this._signedInDesc = document.getElementById("acct-auth-signed-in-desc");
   },
 
+  get _tabCache() {
+    if (!gBrowser.mCurrentBrowser.authCache)
+      gBrowser.mCurrentBrowser.authCache = {baseUrl: null, amcdUrl: null};
+    return gBrowser.mCurrentBrowser.authCache;
+  },
+
   get _realm() {
-    return WeaveID.Service.realms[gBrowser.mCurrentBrowser.amcdUrl];
+    return WeaveID.Service.realms[this._tabCache.amcdUrl];
   },
 
   //**************************************************************************//
@@ -111,39 +117,67 @@ let gWeaveAuthenticator = {
   //**************************************************************************//
   // nsIWebProgressListener
 
-  onLocationChange: function(progress, request, location) {
-    this._log.trace("onLocationChange");
-    // If there's a request, this is a page load or history traversal,
-    // not a tab change, so we have to generate the model all over again.
-    // (whereas on tab changes we can simply reuse the existing model
-    // that we've cached in the browser).  Note that on page loads
-    // we'll generate the model again on DOMContentLoaded, which is redundant,
-    // but I don't know of a way to distinguish between page loads
-    // and history traversals here so that we only do this on history
-    // traversal (perhaps do this on pageshow/pagehide instead?).
-    // Note: the login manager does this via a web progress listener
-    // that listens for Ci.nsIWebProgressListener.STATE_RESTORING; we could
-    // probably do the same, we should just make sure to do so before
-    // the login manager so its notifications build up our model.
+  // Note: on page loads we'll generate the model again on
+  // DOMContentLoaded, which is redundant, but I don't know of a
+  // way to distinguish between page loads and history traversals
+  // here so that we only do this on history traversal (perhaps do
+  // this on pageshow/pagehide instead?).
+  // The login manager does this via a web progress listener
+  // that listens for Ci.nsIWebProgressListener.STATE_RESTORING; we could
+  // probably do the same, we should just make sure to do so before
+  // the login manager so its notifications build up our model.
 
+  onLocationChange: function(progress, request, location) {
     // FIXME: set view to 'loading' ?
-    try {
-      request.QueryInterface(Ci.nsIHttpChannel);
-      let url = request.getResponseHeader('X-Account-Management');
-      let curId;
-      try {
-        curId = request.getResponseHeader('X-Account-CurrentID');
-      } catch (e) { /* not there if logged out, we still want to updateRealm */ }
-      this._log.trace("AMCD is set");
-      this._log.trace("Current ID: " + curId);
-      gBrowser.mCurrentBrowser.amcdUrl = url;
-      WeaveID.Service.updateRealm(url, curId);
-    } catch (e) {
-      // if there's no request or AMCD header, then we update the view here
-      // (otherwise updateRealm above will fire a notification which we'll
-      // listen to and update the view then)
+
+    //
+    // Step 1: make sure this is an actual http request
+    //
+    if (!request) {
+      // this is a tab change, not a page/history load, so we can
+      // simply update the view and reuse the existing model
       this._updateView();
     }
+
+    try {
+      request.QueryInterface(Ci.nsIHttpChannel);
+    } catch (e) { return; } // we only care about http
+
+    //
+    // Step 2: figure out the amcd url
+    //
+    try {
+      // if we have a header, that's the amcd url
+      this._tabCache.amcdUrl = request.getResponseHeader('X-Account-Management');
+      this._log.trace("Found X-Account-Management header");
+
+    } catch (e) {
+      if (this._tabCache.baseUrl != location.hostPort) {
+        this._log.trace("Probing host-meta for AMCD");
+
+        // the tab cache is no longer valid, get the host-meta and amcd url
+        this._tabCache.baseUrl = location.hostPort;
+        this._tabCache.amcdUrl = WeaveID.Service.realmUrlForLocation(location);
+
+        // if we don't have an amcdUrl, this location doesn't support this feature
+        if (!this._tabCache.amcdUrl) {
+          this._updateView();
+          this._log.trace("no AMCD for this page");
+          return;
+        }
+      }
+    }
+
+    //
+    // Step 3: get status change (if set) and update the realm
+    //
+    let statusChange;
+    try {
+      statusChange = request.getResponseHeader('X-Account-Management-Status');
+      this._log.trace("Found X-Account-Management-Status header");
+    } catch (e) { /* ok if not set */ }
+
+    WeaveID.Service.updateRealm(this._tabCache.amcdUrl, statusChange);
   },
 
   onStateChange: function() {},
@@ -171,31 +205,17 @@ let gWeaveAuthenticator = {
   },
 
   onConnect: function() {
+    this._log.debug("Attempting to connect");
     this._realm.connect();
     gBrowser.mCurrentBrowser.reload();
     this._popup.hidePopup();
   },
 
   onDisconnect: function() {
+    this._log.debug("Attempting to disconnect");
     this._realm.disconnect();
     gBrowser.mCurrentBrowser.reload();
     this._popup.hidePopup();
-  },
-
-  // nsILoginManager stuff
-
-  _getLogins: function(domain, username) {
-    let logins = WeaveID.Svc.Login.findLogins({}, domain, domain, null);
-
-    if (!username)
-      return logins;
-
-    for each (let login in logins) {
-      if (login.username == username)
-        return login;
-    }
-
-    return null;
   },
 
   //**************************************************************************//
@@ -204,12 +224,12 @@ let gWeaveAuthenticator = {
   // gets called when the service updates the model for a realm
   onRealmUpdated: function(url) {
     this._log.trace("onRealmUpdated: " + url);
-    if (gBrowser.mCurrentBrowser.amcdUrl == url)
+    if (this._tabCache.amcdUrl == url)
       this._updateView();
   },
 
   _updateView: function() {
-    let realm = WeaveID.Service.realms[gBrowser.mCurrentBrowser.amcdUrl];
+    let realm = WeaveID.Service.realms[this._tabCache.amcdUrl];
     if (realm) {
       // AMCD supported, set view to current state
       this._log.debug("View state: " + realm.signinState);

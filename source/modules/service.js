@@ -100,20 +100,39 @@ WeaveIDSvc.prototype = {
     root.addAppender(dapp);
   },
 
-  updateRealm: function WeaveID_updateRealm(url, curId) {
+  realmUrlForLocation: function WeaveID_realmUrlForLocation(location) {
+    let res = new Resource(location.scheme + '://' +
+                           location.hostPort + '/.well-known/host-meta');
+    let link = /^Link:\s*<(.*)>\s*;\s*rel="amcd"/.exec(res.get())[1];
+    return location.resolve(link);
+  },
+
+  updateRealm: function WeaveID_updateRealm(url, statusChange) {
+    this._log.trace("updateRealm: " + url);
+
     // FIXME: also refresh after a timeout
     if (!this.realms[url]) {
       this._log.trace("Downloading AMCD");
       this.realms[url] = new Realm(url);
+      // FIXME: hack because we don't get a status change when we first
+      // load a page
+      this.realms[url].signinState = Realm.SIGNED_OUT;
       this.realms[url].refreshAmcd();
     }
 
-    if (curId) {
-      this.realms[url].signinState = Realm.SIGNED_IN;
-      this.realms[url].curId = curId;
-    } else {
-      this.realms[url].signinState = Realm.SIGNED_OUT;
-      this.realms[url].curId = "";
+    if (statusChange) {
+      let event = /^([^:]+):?\s*(.*)$/.exec(statusChange);
+      switch (event[1]) {
+      case "signin":
+        this.realms[url].signinState = Realm.SIGNED_IN;
+        this.realms[url].curId = event[2];
+        break;
+      case "signout":
+        this.realms[url].signinState = Realm.SIGNED_OUT;
+        break;
+      default:
+        this._log.warn("Unknown status change event: " + event[1]);
+      }
     }
 
     Observers.notify("weaveid-realm-updated", url);
