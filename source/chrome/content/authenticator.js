@@ -149,7 +149,7 @@ let gWeaveAuthenticator = {
     try {
       // if we have a header, that's the amcd url
       this._tabCache.amcdUrl = request.getResponseHeader('X-Account-Management');
-      this._log.trace("Found X-Account-Management header");
+      this._log.trace("X-Account-Management: " + this._tabCache.amcdUrl);
 
     } catch (e) {
       if (this._tabCache.baseUrl != location.hostPort) {
@@ -174,7 +174,7 @@ let gWeaveAuthenticator = {
     let statusChange;
     try {
       statusChange = request.getResponseHeader('X-Account-Management-Status');
-      this._log.trace("Found X-Account-Management-Status header");
+      this._log.trace("X-Account-Management-Status: " + statusChange);
     } catch (e) { /* ok if not set */ }
 
     WeaveID.Service.updateRealm(this._tabCache.amcdUrl, statusChange);

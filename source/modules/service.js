@@ -103,8 +103,17 @@ WeaveIDSvc.prototype = {
   realmUrlForLocation: function WeaveID_realmUrlForLocation(location) {
     let res = new Resource(location.scheme + '://' +
                            location.hostPort + '/.well-known/host-meta');
-    let link = /^Link:\s*<(.*)>\s*;\s*rel="amcd"/.exec(res.get())[1];
-    return location.resolve(link);
+    let parser = Cc["@mozilla.org/xmlextras/domparser;1"]
+      .createInstance(Ci.nsIDOMParser);
+
+    let doc = parser.parseFromString(res.get(), "text/xml");
+
+    for each (let link in doc.getElementsByTagName("Link")) {
+      if (link.hasAttribute('rel') &&
+          link.getAttribute('rel') == "http://services.mozilla.com/amcd/0.1")
+        return location.resolve(link.getAttribute('href'));
+    }
+    return null;
   },
 
   updateRealm: function WeaveID_updateRealm(url, statusChange) {
@@ -120,20 +129,8 @@ WeaveIDSvc.prototype = {
       this.realms[url].refreshAmcd();
     }
 
-    if (statusChange) {
-      let event = /^([^:]+):?\s*(.*)$/.exec(statusChange);
-      switch (event[1]) {
-      case "signin":
-        this.realms[url].signinState = Realm.SIGNED_IN;
-        this.realms[url].curId = event[2];
-        break;
-      case "signout":
-        this.realms[url].signinState = Realm.SIGNED_OUT;
-        break;
-      default:
-        this._log.warn("Unknown status change event: " + event[1]);
-      }
-    }
+    if (statusChange)
+      this.realms[url].statusChange(statusChange);
 
     Observers.notify("weaveid-realm-updated", url);
   }
@@ -141,10 +138,12 @@ WeaveIDSvc.prototype = {
 
 function Realm(amcdUrl) {
   this.amcdState = this.STATE_UNKNOWN;
-  this.desiredState = this.STATE_UNKNOWN;
+  this.desiredState = this.STATE_UNKNOWN; // unused
   this.signinState = this.STATE_UNKNOWN;
   this.amcdUrl = amcdUrl;
   this.curId = "";
+  this._log = Log4Moz.repository.getLogger("Realm");
+  this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
 }
 Realm.prototype = {
   // Used for amcdState, desiredState, signinState
@@ -184,7 +183,7 @@ Realm.prototype = {
       }
     } else {
       this.amcdState = this.AMCD_DOWNLOAD_ERROR;
-      dump("could not download amcd: " + this.amcdUrl + "\n"); // xxx
+      this._log.warn("could not download amcd: " + this.amcdUrl + "\n"); // xxx
     }
   },
 
@@ -221,7 +220,27 @@ Realm.prototype = {
     return null;
   },
 
+  statusChange: function(header) {
+    let event = /^([^:]+):?\s*(.*)$/.exec(header);
+    switch (event[1]) {
+    case "signin":
+      this.signinState = Realm.SIGNED_IN;
+      this.curId = event[2];
+      break;
+    case "signout":
+      this.signinState = Realm.SIGNED_OUT;
+      break;
+    default:
+      this.signinState = Realm.SIGNED_OUT;
+      this._log.warn("Unknown status change event: " + event[1]);
+    }
+  },
+
   connect: function() {
+    // check if we're already trying to sign in
+    if (this.signinState == this.SIGNING_IN)
+      return;
+    this.signinState = this.SIGNING_IN;
     if (this._amcd.methods.connect) {
       let connect = this._amcd.methods.connect.POST;
       let logins = this._getLogins(this.domain.noslash);
@@ -233,8 +252,11 @@ Realm.prototype = {
 
       let res = new Resource(this.domain.obj.resolve(connect.path));
       res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-      res.post(connect.params.username + '=' + username + '&' +
-               connect.params.password + '=' + password);
+      let ret = res.post(connect.params.username + '=' + username + '&' +
+                         connect.params.password + '=' + password);
+
+      if (ret.headers['X-Account-Management-Status'])
+        this.statusChange(ret.headers['X-Account-Management-Status']);
     }
   },
 
@@ -242,7 +264,9 @@ Realm.prototype = {
     if (this._amcd.methods.disconnect.POST) {
       let disconnect = this._amcd.methods.disconnect.POST;
       let res = new Resource(this.domain.obj.resolve(disconnect.path));
-      res.get();
+      let ret = res.get();
+      if (ret.headers['X-Account-Management-Status'])
+        this.statusChange(ret.headers['X-Account-Management-Status']);
     }
   },
 };

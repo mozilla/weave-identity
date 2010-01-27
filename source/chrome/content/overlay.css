@@ -1,3 +1,4 @@
+#acct-auth-icon[state="unknown"],
 #acct-auth-icon[state="signed_out"] {
   list-style-image: url("chrome://weave-identity/skin/auth-disabled.png");
 }
