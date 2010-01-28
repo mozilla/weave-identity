@@ -77,14 +77,12 @@ let gWeaveAuthenticator = {
     return this._signedInDesc = document.getElementById("acct-auth-signed-in-desc");
   },
 
-  get _tabCache() {
-    if (!gBrowser.mCurrentBrowser.authCache)
-      gBrowser.mCurrentBrowser.authCache = {baseUrl: null, amcdUrl: null};
-    return gBrowser.mCurrentBrowser.authCache;
+  get _curRealmUrl() {
+    return gBrowser.mCurrentBrowser.realm;
   },
 
-  get _realm() {
-    return WeaveID.Service.realms[this._tabCache.amcdUrl];
+  get _curRealm() {
+    return WeaveID.Service.realms[this._curRealmUrl];
   },
 
   //**************************************************************************//
@@ -113,71 +111,15 @@ let gWeaveAuthenticator = {
     }
   },
 
-
   //**************************************************************************//
   // nsIWebProgressListener
 
-  // Note: on page loads we'll generate the model again on
-  // DOMContentLoaded, which is redundant, but I don't know of a
-  // way to distinguish between page loads and history traversals
-  // here so that we only do this on history traversal (perhaps do
-  // this on pageshow/pagehide instead?).
-  // The login manager does this via a web progress listener
-  // that listens for Ci.nsIWebProgressListener.STATE_RESTORING; we could
-  // probably do the same, we should just make sure to do so before
-  // the login manager so its notifications build up our model.
-
   onLocationChange: function(progress, request, location) {
-    // FIXME: set view to 'loading' ?
-
-    //
-    // Step 1: make sure this is an actual http request
-    //
-    if (!request) {
-      // this is a tab change, not a page/history load, so we can
-      // simply update the view and reuse the existing model
-      this._updateView();
-    }
-
-    try {
-      request.QueryInterface(Ci.nsIHttpChannel);
-    } catch (e) { return; } // we only care about http
-
-    //
-    // Step 2: figure out the amcd url
-    //
-    try {
-      // if we have a header, that's the amcd url
-      this._tabCache.amcdUrl = request.getResponseHeader('X-Account-Management');
-      this._log.trace("X-Account-Management: " + this._tabCache.amcdUrl);
-
-    } catch (e) {
-      if (this._tabCache.baseUrl != location.hostPort) {
-        this._log.trace("Probing host-meta for AMCD");
-
-        // the tab cache is no longer valid, get the host-meta and amcd url
-        this._tabCache.baseUrl = location.hostPort;
-        this._tabCache.amcdUrl = WeaveID.Service.realmUrlForLocation(location);
-
-        // if we don't have an amcdUrl, this location doesn't support this feature
-        if (!this._tabCache.amcdUrl) {
-          this._updateView();
-          this._log.trace("no AMCD for this page");
-          return;
-        }
-      }
-    }
-
-    //
-    // Step 3: get status change (if set) and update the realm
-    //
-    let statusChange;
-    try {
-      statusChange = request.getResponseHeader('X-Account-Management-Status');
-      this._log.trace("X-Account-Management-Status: " + statusChange);
-    } catch (e) { /* ok if not set */ }
-
-    WeaveID.Service.updateRealm(this._tabCache.amcdUrl, statusChange);
+    // FIXME: update view to set to 'loading' ?
+    let doc = progress.DOMWindow.document;
+    let browser = gBrowser.getBrowserForDocument(doc);
+    browser.realm = WeaveID.Service.updateRealm(request, location);
+    this._updateView();
   },
 
   onStateChange: function() {},
@@ -199,21 +141,21 @@ let gWeaveAuthenticator = {
     if (event.target != this._popup)
       return;
 
-    if (this._realm && this._realm.curId)
+    if (this._curRealm && this._curRealm.curId)
       this._signedInDesc.value =
-        WeaveID.Str.overlay.get("signed-in-as", [this._realm.curId]);
+        WeaveID.Str.overlay.get("signed-in-as", [this._curRealm.curId]);
   },
 
   onConnect: function() {
     this._log.debug("Attempting to connect");
-    this._realm.connect();
+    this._curRealm.connect();
     gBrowser.mCurrentBrowser.reload();
     this._popup.hidePopup();
   },
 
   onDisconnect: function() {
     this._log.debug("Attempting to disconnect");
-    this._realm.disconnect();
+    this._curRealm.disconnect();
     gBrowser.mCurrentBrowser.reload();
     this._popup.hidePopup();
   },
@@ -223,17 +165,18 @@ let gWeaveAuthenticator = {
 
   // gets called when the service updates the model for a realm
   onRealmUpdated: function(url) {
-    this._log.trace("onRealmUpdated: " + url);
-    if (this._tabCache.amcdUrl == url)
+    if (this._curRealmUrl == url)
       this._updateView();
   },
 
   _updateView: function() {
-    let realm = WeaveID.Service.realms[this._tabCache.amcdUrl];
-    if (realm) {
+    if (this._curRealm) {
+      // skip if state is already correct
+      if (this._curRealm.signinState == this._state.getAttribute("state"))
+        return;
       // AMCD supported, set view to current state
-      this._log.debug("View state: " + realm.signinState);
-      this._state.setAttribute("state", realm.signinState);
+      this._log.debug("View state: " + this._curRealm.signinState);
+      this._state.setAttribute("state", this._curRealm.signinState);
     } else {
       // this site does not support the AMCD
       this._log.debug("View state: no realm for this site");

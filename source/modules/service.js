@@ -47,39 +47,45 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://weave-identity/ext/log4moz.js");
 Cu.import("resource://weave-identity/ext/Observers.js");
 Cu.import("resource://weave-identity/ext/resource.js");
+Cu.import("resource://weave-identity/ext/Cache.js");
 Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
+Cu.import("resource://weave-identity/realm.js");
 
 // for export
 let WeaveID = {};
 Cu.import("resource://weave-identity/constants.js", WeaveID);
 Cu.import("resource://weave-identity/util.js", WeaveID);
+Cu.import("resource://weave-identity/realm.js", WeaveID);
 
 Utils.lazy(WeaveID, 'Service', WeaveIDSvc);
 
 /*
  * Service singleton
- * Main entry point into Weave's sync framework
  */
 
 function WeaveIDSvc() {
   this.realms = {};
 }
 WeaveIDSvc.prototype = {
-
   // this gets called on app startup by an xpcom component
   onStartup: function onStartup() {
-    //Utils.prefs.addObserver("", this, false);
-    //Observers.add("network:offline-status-changed", this._onOfflineToggle, this);
-    //Observers.add("private-browsing", this._onPrivateBrowsingToggle, this);
-    //Observers.add("quit-application", this._onQuitApplication, this);
-
     let ua = Cc["@mozilla.org/network/protocol;1?name=http"].
       getService(Ci.nsIHttpProtocolHandler).userAgent;
 
     this._initLogs();
     this._log.info("Loading Weave Identity component");
     this._log.info(ua);
+
+    this._locationCache = new Cache();
+
+    try {
+      this._docLoader = Cc["@mozilla.org/docloaderservice;1"]
+        .getService(Ci.nsIWebProgress);
+      this._docLoader.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
+    } catch (e) {
+      this._log.error(e);
+    }
   },
 
   _initLogs: function WeaveID__initLogs() {
@@ -100,7 +106,83 @@ WeaveIDSvc.prototype = {
     root.addAppender(dapp);
   },
 
-  realmUrlForLocation: function WeaveID_realmUrlForLocation(location) {
+  //**************************************************************************//
+  // nsIWebProgressListener
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
+                                         Ci.nsIDOMEventListener,
+                                         Ci.nsISupportsWeakReference]),
+
+  onStateChange: function(progress, request, stateFlags, status) {
+    if (stateFlags & Ci.nsIWebProgressListener.STATE_REDIRECTING)
+      this.updateRealm(request);
+  },
+  onLocationChange: function() {},
+  onProgressChange: function() {},
+  onStatusChange: function() {},
+  onSecurityChange: function() {},
+  onLinkIconAvailable: function() {},
+
+  //**************************************************************************//
+
+  updateRealm: function WeaveID_updateRealm(request, location) {
+    try {
+      request.QueryInterface(Ci.nsIHttpChannel);
+    } catch (e) { return null; } // we only care about http
+
+    if (!location)
+      location = request.URI;
+
+    let url = this._findRealm(request, location);
+    if (!url)
+      return null;
+
+    this._log.trace("updateRealm: " + url);
+
+    // FIXME: also refresh after a timeout
+    if (!this.realms[url]) {
+      this._log.trace("Downloading AMCD");
+      this.realms[url] = new Realm(url);
+      // FIXME: hack because we don't get a status change when we first
+      // load a page
+      this.realms[url].refreshAmcd();
+    }
+
+    let statusChange; 
+    try {
+      statusChange = request.getResponseHeader('X-Account-Management-Status');
+      this._log.trace("X-Account-Management-Status: " + statusChange);
+    } catch (e) { /* ok if not set */ }
+    if (statusChange)
+      this.realms[url].statusChange(statusChange);
+
+    Observers.notify("weaveid-realm-updated", url);
+    return url;
+  },
+
+  _findRealm: function(request, location) {
+    try {
+      // if we have a header, that's the amcd url
+      return request.getResponseHeader('X-Account-Management');
+
+    } catch (e) {
+      if (this._locationCache.get(location.hostPort)) {
+        // we have the amcd location already cached
+        return this._locationCache.get(location.hostPort);
+
+      } else {
+        // probe for host-meta, and discover the amcd if present
+        let amcdUrl = this._probeHostMeta(location);
+        if (amcdUrl) {
+          this._locationCache.put(location.hostPort, amcdUrl);
+          return amcdUrl;
+        } else
+          return null;
+      }
+    }
+  },
+
+  _probeHostMeta: function(location) {
     let res = new Resource(location.scheme + '://' +
                            location.hostPort + '/.well-known/host-meta');
     let parser = Cc["@mozilla.org/xmlextras/domparser;1"]
@@ -114,160 +196,5 @@ WeaveIDSvc.prototype = {
         return location.resolve(link.getAttribute('href'));
     }
     return null;
-  },
-
-  updateRealm: function WeaveID_updateRealm(url, statusChange) {
-    this._log.trace("updateRealm: " + url);
-
-    // FIXME: also refresh after a timeout
-    if (!this.realms[url]) {
-      this._log.trace("Downloading AMCD");
-      this.realms[url] = new Realm(url);
-      // FIXME: hack because we don't get a status change when we first
-      // load a page
-      this.realms[url].signinState = Realm.SIGNED_OUT;
-      this.realms[url].refreshAmcd();
-    }
-
-    if (statusChange)
-      this.realms[url].statusChange(statusChange);
-
-    Observers.notify("weaveid-realm-updated", url);
   }
 };
-
-function Realm(amcdUrl) {
-  this.amcdState = this.STATE_UNKNOWN;
-  this.desiredState = this.STATE_UNKNOWN; // unused
-  this.signinState = this.STATE_UNKNOWN;
-  this.amcdUrl = amcdUrl;
-  this.curId = "";
-  this._log = Log4Moz.repository.getLogger("Realm");
-  this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
-}
-Realm.prototype = {
-  // Used for amcdState, desiredState, signinState
-  STATE_UNKNOWN: "unknown",
-
-  // AMCD states
-  amcdState: null,
-  AMCD_NOT_SUPPORTED: "amcd_not_supported",
-  AMCD_DOWNLOADING: "amcd_downloading",
-  AMCD_OK: "amcd_ok",
-  AMCD_DOWNLOAD_ERROR: "amcd_download_error",
-  AMCD_PARSE_ERROR: "amcd_parse_error",
-
-  // desired state
-  desiredState: null,
-  SIGN_IN_WANTED: "sign_in_wanted",
-  SIGN_OUT_WANTED: "sign_out_wanted",
-
-  // actual state
-  signinState: null,
-  SIGNING_IN: "signing_in",
-  SIGNED_IN: "signed_in",
-  SIGNED_OUT: "signed_out",
-
-  refreshAmcd: function Realm_refreshAmcd() {
-    this.amcdState = this.AMCD_DOWNLOADING;
-
-    let res = new Resource(this.amcdUrl);
-    let ret = res.get();
-
-    if (ret.success) {
-      try {
-        this._amcd = ret.obj;
-        this.amcdState = this.AMCD_OK;
-      } catch (e) {
-        this.amcdState = this.AMCD_PARSE_ERROR;
-      }
-    } else {
-      this.amcdState = this.AMCD_DOWNLOAD_ERROR;
-      this._log.warn("could not download amcd: " + this.amcdUrl + "\n"); // xxx
-    }
-  },
-
-  get name() {
-    return this._amcd.name;
-  },
-
-  get domain() {
-    if (this._domain)
-      return this._domain;
-
-    let domain = new String(this._amcd.domain);
-    domain.obj = WeaveID.Utils.makeURL(domain);
-    if (domain[domain.length - 1] == '/')
-      domain.noslash = domain.slice(0, domain.length - 1);
-    else
-      domain.noslash = this._amcd.domain;
-
-    // cache it for next time
-    return this._domain = domain;
-  },
-
-  _getLogins: function(domain, username) {
-    let logins = Svc.Login.findLogins({}, domain, domain, null);
-
-    if (!username)
-      return logins;
-
-    for each (let login in logins) {
-      if (login.username == username)
-        return login;
-    }
-
-    return null;
-  },
-
-  statusChange: function(header) {
-    let event = /^([^:]+):?\s*(.*)$/.exec(header);
-    switch (event[1]) {
-    case "signin":
-      this.signinState = Realm.SIGNED_IN;
-      this.curId = event[2];
-      break;
-    case "signout":
-      this.signinState = Realm.SIGNED_OUT;
-      break;
-    default:
-      this.signinState = Realm.SIGNED_OUT;
-      this._log.warn("Unknown status change event: " + event[1]);
-    }
-  },
-
-  connect: function() {
-    // check if we're already trying to sign in
-    if (this.signinState == this.SIGNING_IN)
-      return;
-    this.signinState = this.SIGNING_IN;
-    if (this._amcd.methods.connect) {
-      let connect = this._amcd.methods.connect.POST;
-      let logins = this._getLogins(this.domain.noslash);
-      let username, password;
-      if (logins && logins.length > 0) {
-        username = logins[0].username;
-        password = logins[0].password;
-      }
-
-      let res = new Resource(this.domain.obj.resolve(connect.path));
-      res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-      let ret = res.post(connect.params.username + '=' + username + '&' +
-                         connect.params.password + '=' + password);
-
-      if (ret.headers['X-Account-Management-Status'])
-        this.statusChange(ret.headers['X-Account-Management-Status']);
-    }
-  },
-
-  disconnect: function() {
-    if (this._amcd.methods.disconnect.POST) {
-      let disconnect = this._amcd.methods.disconnect.POST;
-      let res = new Resource(this.domain.obj.resolve(disconnect.path));
-      let ret = res.get();
-      if (ret.headers['X-Account-Management-Status'])
-        this.statusChange(ret.headers['X-Account-Management-Status']);
-    }
-  },
-};
-Realm.__proto__ = Realm.prototype; // So that Realm.STATE_* work
