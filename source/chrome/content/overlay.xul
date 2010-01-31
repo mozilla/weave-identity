@@ -38,10 +38,10 @@
       </panel>
     </popupset>
 
-    <hbox id="urlbar-icons">
+    <toolbaritem id="urlbar-container">
       <image id="acct-auth-icon" class="urlbar-icon" hidden="true"
              observes="acct-auth-state"
-             insertbefore="feed-button"
+             insertbefore="urlbar"
              onclick="gWeaveAuthenticator.onIconClick(event);"/>
-    </hbox>
+    </toolbaritem>
 </overlay>

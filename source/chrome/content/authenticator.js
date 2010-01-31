@@ -165,20 +165,22 @@ let gWeaveAuthenticator = {
 
   // gets called when the service updates the model for a realm
   onRealmUpdated: function(url) {
+    this._log.debug("onRealmUpdated");
     if (this._curRealmUrl == url)
       this._updateView();
   },
 
   _updateView: function() {
     if (this._curRealm) {
-      // skip if state is already correct
-      if (this._curRealm.signinState == this._state.getAttribute("state"))
-        return;
       // AMCD supported, set view to current state
+      if (this._state.getAttribute("state") == this._curRealm.signinState)
+        return;
       this._log.debug("View state: " + this._curRealm.signinState);
       this._state.setAttribute("state", this._curRealm.signinState);
     } else {
       // this site does not support the AMCD
+      if (this._state.getAttribute("state") == "disabled")
+        return;
       this._log.debug("View state: no realm for this site");
       this._state.setAttribute("state", "disabled");
     }

@@ -46,6 +46,7 @@ const Cu = Components.utils;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://weave-identity/ext/log4moz.js");
 Cu.import("resource://weave-identity/ext/Observers.js");
+Cu.import("resource://weave-identity/ext/Preferences.js");
 Cu.import("resource://weave-identity/ext/resource.js");
 Cu.import("resource://weave-identity/ext/Cache.js");
 Cu.import("resource://weave-identity/constants.js");
