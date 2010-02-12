@@ -136,17 +136,56 @@ Realm.prototype = {
     return null;
   },
 
+  _parseArgs: function(header) {
+    let args = {};
+
+    if (!header)
+      return args;
+
+    let keyRe = /^\s*([^=]+)=/;
+    let valueRe = /^([^;]*)(?:;|$)/;
+    let quotedValueRe = /^"((?:\\"|[^\\])*)"\s*(?:;|$)/;
+
+    function reHelper(re, string) {
+      let out = re.exec(string);
+      if (!out)
+        return [null, string];
+      return [out[1], string.replace(re, '')];
+    }
+
+    while (true) {
+      let key;
+      [key, header] = reHelper(keyRe, header);
+      if (!key)
+        break;
+
+      let re = valueRe;
+      if (header[0] == '"')
+        re = quotedValueRe;
+
+      let value;
+      [value, header] = reHelper(re, header);
+      if (value == null)
+        break;
+
+      args[key] = value;
+    }
+    return args;
+  },
+
   statusChange: function(header) {
     this._log.debug("changing status: " + header);
     if (!header)
       return;
-    let event = /^([^:]+):?\s*(.*)$/.exec(header);
+    let event = /^([^;]+);?\s*(.*)$/.exec(header);
+    let args = this._parseArgs(event[2]);
     switch (event[1]) {
-    case "signin":
+    case "active":
       this.signinState = Realm.SIGNED_IN;
-      this.curId = event[2];
+      this.curId = args["name"];
       break;
-    case "signout":
+    case "passive":
+    case "none":
       this.signinState = Realm.SIGNED_OUT;
       break;
     default:
