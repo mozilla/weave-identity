@@ -755,6 +755,24 @@ let Utils = {
     return function innerBind() { return method.apply(object, arguments); };
   },
 
+  /**
+   * Get logins (username/passwords) from the login manager for a
+   * domain & username combination
+   */
+  getLogins: function(domain, username) {
+    let logins = Svc.Login.findLogins({}, domain, domain, null);
+
+    if (!username)
+      return logins;
+
+    for each (let login in logins) {
+      if (login.username == username)
+        return login;
+    }
+
+    return null;
+  },
+
   __prefs: null,
   get prefs() {
     if (!this.__prefs) {

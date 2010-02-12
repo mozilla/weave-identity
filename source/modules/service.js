@@ -134,34 +134,41 @@ WeaveIDSvc.prototype = {
     if (!location)
       location = request.URI;
 
-    let url = this._findRealm(request, location);
-    if (!url)
+    let realm = this._findRealm(request, location);
+    if (!realm)
       return null;
 
-    this._log.trace("updateRealm: " + url);
+    this._log.trace("updateRealm: " + realm.realmUrl);
 
     // FIXME: also refresh after a timeout
-    if (!this.realms[url]) {
+    if (realm.amcdState == Realm.STATE_UNKNOWN) {
       this._log.trace("Downloading AMCD");
-      this.realms[url] = new Realm(url);
-      // FIXME: hack because we don't get a status change when we first
-      // load a page
-      this.realms[url].refreshAmcd();
+      realm.refreshAmcd();
     }
 
-    let statusChange; 
-    try {
-      statusChange = request.getResponseHeader('X-Account-Management-Status');
-      this._log.trace("X-Account-Management-Status: " + statusChange);
-    } catch (e) { /* ok if not set */ }
-    if (statusChange)
-      this.realms[url].statusChange(statusChange);
+    realm.updateStatus(request, location);
 
-    Observers.notify("weaveid-realm-updated", url);
-    return url;
+    Observers.notify("weaveid-realm-updated", realm.realmUrl);
+    return realm.realmUrl;
   },
 
   _findRealm: function(request, location) {
+    let url = this._findRealmUrl(request, location);
+    if (url) {
+      if (this.realms[url])
+        return this.realms[url];
+      return this.realms[url] = new Realm(url);
+    }
+    url = this._findSyntheticRealmUrl(request, location);
+    if (url) {
+      if (this.realms[url])
+        return this.realms[url];
+      return this.realms[url] = new SynthRealm(url);
+    }
+    return null;
+  },
+
+  _findRealmUrl: function(request, location) {
     try {
       // if we have a header, that's the amcd url
       return request.getResponseHeader('X-Account-Management');
@@ -177,10 +184,20 @@ WeaveIDSvc.prototype = {
         if (amcdUrl) {
           this._locationCache.put(location.hostPort, amcdUrl);
           return amcdUrl;
+
         } else
           return null;
       }
     }
+  },
+
+  _findSyntheticRealmUrl: function(request, location) {
+    if (this.realms['fakeamcd://' + location.hostPort])
+      return 'fakeamcd://' + location.hostPort;
+    // fixme: move into SynthRealm
+    if (location.hostPort == 'mozilla.com:80')
+      return 'fakeamcd://mozilla.com:80';
+    return null;
   },
 
   _probeHostMeta: function(location) {

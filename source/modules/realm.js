@@ -48,11 +48,11 @@ Cu.import("resource://weave-identity/ext/resource.js");
 Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
 
-function Realm(amcdUrl) {
+function Realm(realmUrl) {
   this.amcdState = this.STATE_UNKNOWN;
   this.desiredState = this.STATE_UNKNOWN; // unused
   this.signinState = this.STATE_UNKNOWN;
-  this.amcdUrl = amcdUrl;
+  this.realmUrl = realmUrl;
   this.curId = "";
   this._log = Log4Moz.repository.getLogger("Realm");
   this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
@@ -80,33 +80,7 @@ Realm.prototype = {
   SIGNED_IN: "signed_in",
   SIGNED_OUT: "signed_out",
 
-  refreshAmcd: function Realm_refreshAmcd() {
-    this.amcdState = this.AMCD_DOWNLOADING;
-
-    let res = new Resource(this.amcdUrl);
-    let ret = res.get();
-
-    if (ret.success) {
-      try {
-        this._amcd = ret.obj;
-        this.amcdState = this.AMCD_OK;
-
-        if (this.signinState == this.STATE_UNKNOWN)
-          this.querySigninState();
-
-      } catch (e) {
-        this.amcdState = this.AMCD_PARSE_ERROR;
-      }
-    } else {
-      this.amcdState = this.AMCD_DOWNLOAD_ERROR;
-      this._log.warn("could not download amcd: " + this.amcdUrl + "\n"); // xxx
-    }
-  },
-
-  get name() {
-    return this._amcd.name;
-  },
-
+  // FIXME: don't get the domain from the AMCD
   get domain() {
     if (this._domain)
       return this._domain;
@@ -122,18 +96,27 @@ Realm.prototype = {
     return this._domain = domain;
   },
 
-  _getLogins: function(domain, username) {
-    let logins = Svc.Login.findLogins({}, domain, domain, null);
+  refreshAmcd: function Realm_refreshAmcd() {
+    this.amcdState = this.AMCD_DOWNLOADING;
 
-    if (!username)
-      return logins;
+    let res = new Resource(this.realmUrl);
+    let ret = res.get();
 
-    for each (let login in logins) {
-      if (login.username == username)
-        return login;
+    if (ret.success) {
+      try {
+        this._amcd = ret.obj;
+        this.amcdState = this.AMCD_OK;
+
+        if (this.signinState == this.STATE_UNKNOWN)
+          this.querySigninState();
+
+      } catch (e) {
+        this.amcdState = this.AMCD_PARSE_ERROR;
+      }
+    } else {
+      this.amcdState = this.AMCD_DOWNLOAD_ERROR;
+      this._log.warn("could not download amcd: " + this.realmUrl + "\n"); // xxx
     }
-
-    return null;
   },
 
   _parseArgs: function(header) {
@@ -144,7 +127,7 @@ Realm.prototype = {
 
     let keyRe = /^\s*([^=]+)=/;
     let valueRe = /^([^;]*)(?:;|$)/;
-    let quotedValueRe = /^"((?:\\"|[^\\])*)"\s*(?:;|$)/;
+    let quotedValueRe = /^\s*"((?:\\"|[^\\])*)"\s*(?:;|$)/;
 
     function reHelper(re, string) {
       let out = re.exec(string);
@@ -160,7 +143,7 @@ Realm.prototype = {
         break;
 
       let re = valueRe;
-      if (header[0] == '"')
+      if (/^\s*"/.test(header))
         re = quotedValueRe;
 
       let value;
@@ -173,12 +156,25 @@ Realm.prototype = {
     return args;
   },
 
+  updateStatus: function(request, location) {
+    let header; 
+    try {
+      header = request.getResponseHeader('X-Account-Management-Status');
+      this._log.trace("X-Account-Management-Status: " + header);
+    } catch (e) { /* ok if not set */ }
+    if (header)
+      this.statusChange(header);
+  },
+
   statusChange: function(header) {
     this._log.debug("changing status: " + header);
     if (!header)
       return;
-    let event = /^([^;]+);?\s*(.*)$/.exec(header);
-    let args = this._parseArgs(event[2]);
+
+    let re = /^([^;]+)\s*(?:;|$)/;
+    let event = re.exec(header);
+    let args = this._parseArgs(header.replace(re, ''));
+
     switch (event[1]) {
     case "active":
       this.signinState = Realm.SIGNED_IN;
@@ -235,7 +231,7 @@ Realm.prototype = {
 
     if (this._amcd.methods.connect['POST']) {
       let connect = this._amcd.methods.connect.POST;
-      let logins = this._getLogins(this.domain.noslash);
+      let logins = Utils.getLogins(this.domain.noslash);
       let username, password;
       if (logins && logins.length > 0) {
         username = logins[0].username;
@@ -272,6 +268,6 @@ Realm.prototype = {
       this.statusChange(ret.headers['X-Account-Management-Status']);
     } else
       this._log.warn('No supported methods in common for disconnect');
-  },
+  }
 };
 Realm.__proto__ = Realm.prototype; // So that Realm.STATE_* work
