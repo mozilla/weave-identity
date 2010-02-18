@@ -52,6 +52,7 @@ Cu.import("resource://weave-identity/ext/Cache.js");
 Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
 Cu.import("resource://weave-identity/realm.js");
+Cu.import("resource://weave-identity/synthrealm.js");
 
 // for export
 let WeaveID = {};
@@ -79,6 +80,7 @@ WeaveIDSvc.prototype = {
     this._log.info(ua);
 
     this._locationCache = new Cache();
+    this._synthRealms = new SynthRealmFactory();
 
     try {
       this._docLoader = Cc["@mozilla.org/docloaderservice;1"]
@@ -115,8 +117,9 @@ WeaveIDSvc.prototype = {
                                          Ci.nsISupportsWeakReference]),
 
   onStateChange: function(progress, request, stateFlags, status) {
-    if (stateFlags & Ci.nsIWebProgressListener.STATE_REDIRECTING)
-      this.updateRealm(request);
+    if (stateFlags & Ci.nsIWebProgressListener.STATE_REDIRECTING ||
+        stateFlags & Ci.nsIWebProgressListener.STATE_STOP)
+      this.updateRealm(progress, request);
   },
   onLocationChange: function() {},
   onProgressChange: function() {},
@@ -126,7 +129,7 @@ WeaveIDSvc.prototype = {
 
   //**************************************************************************//
 
-  updateRealm: function WeaveID_updateRealm(request, location) {
+  updateRealm: function WeaveID_updateRealm(progress, request, location) {
     try {
       request.QueryInterface(Ci.nsIHttpChannel);
     } catch (e) { return null; } // we only care about http
@@ -146,67 +149,74 @@ WeaveIDSvc.prototype = {
       realm.refreshAmcd();
     }
 
-    realm.updateStatus(request, location);
+    realm.updateStatus(progress, request, location);
 
     Observers.notify("weaveid-realm-updated", realm.realmUrl);
     return realm.realmUrl;
   },
 
   _findRealm: function(request, location) {
-    let url = this._findRealmUrl(request, location);
-    if (url) {
-      if (this.realms[url])
-        return this.realms[url];
-      return this.realms[url] = new Realm(url);
-    }
-    url = this._findSyntheticRealmUrl(request, location);
-    if (url) {
-      if (this.realms[url])
-        return this.realms[url];
-      return this.realms[url] = new SynthRealm(url);
-    }
-    return null;
-  },
-
-  _findRealmUrl: function(request, location) {
     try {
       // if we have a header, that's the amcd url
-      return request.getResponseHeader('X-Account-Management');
+      let url = request.getResponseHeader('X-Account-Management');
+      if (this.realms[url])
+        return this.realms[url];
+      return this.realms[url] = new Realm(url, location);
 
     } catch (e) {
-      if (this._locationCache.get(location.hostPort)) {
-        // we have the amcd location already cached
-        return this._locationCache.get(location.hostPort);
+      let url = this._locationCache.get(location.hostPort);
+
+      if (typeof(url) != "undefined") {
+        // cache hit
+        // if null, we already probed this site and found nothing
+        // else we should have a realm for it already
+        if (!url)
+          return null;
+        return this.realms[url];
 
       } else {
-        // probe for host-meta, and discover the amcd if present
-        let amcdUrl = this._probeHostMeta(location);
-        if (amcdUrl) {
-          this._locationCache.put(location.hostPort, amcdUrl);
-          return amcdUrl;
+        // * probe for host-meta, and discover the amcd if present
+        // * if that doesn't work, try finding a synthRealm
+        // * if that fails too, cache a null location (so we don't
+        //   keep probing the site for the host-meta)
+        let fakeRealm = false;
+        url = this._probeHostMeta(location);
+        if (!url) {
+          fakeRealm = true;
+          url = this._synthRealms.realmUri(request, location);
+        }
 
-        } else
-          return null;
+        this._locationCache.put(location.hostPort, url);
+
+        // if we did find a url, return the cached realm object, or make a new one
+        if (url) {
+          // xxx should not be there unless there was a location cache miss
+          if (this.realms[url])
+            return this.realms[url];
+
+          let domain = location.scheme + '://' + location.hostPort;
+          if (fakeRealm)
+            return this.realms[url] = this._synthRealms.makeRealm(url);
+          else
+            return this.realms[url] = new Realm(url, domain);
+        }
+
+        return null; // this site is not supported
       }
     }
   },
 
-  _findSyntheticRealmUrl: function(request, location) {
-    if (this.realms['fakeamcd://' + location.hostPort])
-      return 'fakeamcd://' + location.hostPort;
-    // fixme: move into SynthRealm
-    if (location.hostPort == 'mozilla.com:80')
-      return 'fakeamcd://mozilla.com:80';
-    return null;
-  },
-
   _probeHostMeta: function(location) {
+    this._log.trace("Probing host-meta for realm url");
     let res = new Resource(location.scheme + '://' +
                            location.hostPort + '/.well-known/host-meta');
+    let hostmeta = res.get();
+    if (!hostmeta || hostmeta.status == 404)
+      return null;
+
     let parser = Cc["@mozilla.org/xmlextras/domparser;1"]
       .createInstance(Ci.nsIDOMParser);
-
-    let doc = parser.parseFromString(res.get(), "text/xml");
+    let doc = parser.parseFromString(hostmeta, "text/xml");
 
     for each (let link in doc.getElementsByTagName("Link")) {
       if (link.hasAttribute('rel') &&

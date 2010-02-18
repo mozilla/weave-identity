@@ -82,6 +82,8 @@ let gWeaveAuthenticator = {
   },
 
   get _curRealm() {
+    if (!this._curRealmUrl)
+      return null;
     return WeaveID.Service.realms[this._curRealmUrl];
   },
 
@@ -114,11 +116,15 @@ let gWeaveAuthenticator = {
   //**************************************************************************//
   // nsIWebProgressListener
 
+  // FIXME: not getting events for background tabs?
   onLocationChange: function(progress, request, location) {
     // FIXME: update view to set to 'loading' ?
-    let doc = progress.DOMWindow.document;
-    let browser = gBrowser.getBrowserForDocument(doc);
-    browser.realm = WeaveID.Service.updateRealm(request, location);
+    // if there's no request, this is a tab switch, not a page load
+    if (request) {
+      let doc = progress.DOMWindow.document;
+      let browser = gBrowser.getBrowserForDocument(doc);
+      browser.realm = WeaveID.Service.updateRealm(progress, request, location);
+    }
     this._updateView();
   },
 

@@ -34,7 +34,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const EXPORTED_SYMBOLS = ['SynthRealm'];
+const EXPORTED_SYMBOLS = ['SynthRealmFactory'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -47,35 +47,109 @@ Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
 Cu.import("resource://weave-identity/realm.js");
 
-function SynthRealm(realmUrl) {
-  this.amcdState = this.STATE_UNKNOWN;
-  this.signinState = this.STATE_UNKNOWN;
-  this.realmUrl = realmUrl;
-  this.curId = "";
-  this._log = Log4Moz.repository.getLogger("SynthRealm");
+function SynthRealmFactory() {
+  this._log = Log4Moz.repository.getLogger("SynthRealmFactory");
   this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
-}
-SynthRealm.prototype = {
-  __proto__: Realm.prototype,
 
-  get domain() {
+  this._realms = {};
+
+  // register bundled realms
+  this.register(BasicSynthRealm);
+}
+SynthRealmFactory.prototype = {
+  register: function(realm) {
+    let domain = realm.prototype._amcd.domain; // xxx
+    this._realms[domain] = realm;
+  },
+  realmUri: function(request, location) {
+    this._log.trace("Attempting to find a synthrealm for " + location.hostPort);
+    for (let uri in this._realms) {
+      if (location.scheme + '://' + location.hostPort == uri)
+        return uri;
+    }
+    return null;
+  },
+  makeRealm: function(url) {
+    return new this._realms[url](url);
+  }
+};
+
+function BasicSynthRealm(url) {
+  // xxx url unused
+  this._init();
+  this.realmUrl = this._domainUrl = this._amcd.domain;
+}
+BasicSynthRealm.prototype = {
+  __proto__: Realm.prototype,
+  _amcd: {
+    "domain": "http://localhost",
+    "methods": {
+      "connect": {
+        "POST": {
+          "path":"/signin/",
+          "params": {
+            "username":"unam",
+            "password":"pwd"
+          }
+        }
+      },
+      "disconnect": {
+        "POST": {
+          "path":"/signout/",
+          "params": {
+            "username":"unam",
+            "password":"pwd"
+          }
+        }
+      },
+      "query": {
+        "GET": {
+          "path":"/"
+        }
+      },
+      "register": {
+        "POST": {
+          "path":"/user/",
+          "schemas": {
+            "poco":"http://portablecontacts/ns/1.0"
+          },
+          "params": {
+            "username":"unam",
+            "password":"pwd",
+            "password_verify":"pwd2",
+            "poco": {
+              "givenName": "fname",
+              "familyName": "lname"
+            }
+          }
+        }
+      },
+      "changepassword": {
+        "POST": {
+          "path":"/changepass/",
+          "params": {
+            "username":"unam",
+            "old_password":"old_pwd",
+            "password":"pwd",
+            "password_verify":"pwd2"
+          }
+        }
+      }
+    }
   },
 
   refreshAmcd: function() {
+    this._log.trace("refreshAmcd");
+    this.amcdState = this.AMCD_OK;
   },
 
-  updateStatus: function(request, location) {
-  },
-
-  statusChange: function(header) {
-  },
-
-  querySigninState: function() {
-  },
-
-  connect: function() {
-  },
-
-  disconnect: function() {
+  updateStatus: function(progress, request, location) {
+    if (progress.isLoadingDocument)
+      return; // need the full doc to scrape it
+    let user = progress.DOMWindow.document.getElementById("username");
+    if (user)
+      this.statusChange('active; name="' + user.innerHTML + '"');
+    else
+      this.statusChange('none;');
   }
 };

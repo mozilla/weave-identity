@@ -48,17 +48,14 @@ Cu.import("resource://weave-identity/ext/resource.js");
 Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
 
-function Realm(realmUrl) {
-  this.amcdState = this.STATE_UNKNOWN;
-  this.desiredState = this.STATE_UNKNOWN; // unused
-  this.signinState = this.STATE_UNKNOWN;
-  this.realmUrl = realmUrl;
-  this.curId = "";
-  this._log = Log4Moz.repository.getLogger("Realm");
-  this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
+function Realm(realmUrl, domainUrl) {
+  this._init(realmUrl, domainUrl);
 }
 Realm.prototype = {
-  // Used for amcdState, desiredState, signinState
+  _logName: "Realm",
+  _logPref: "log.logger.realm",
+
+  // Used for amcdState, signinState
   STATE_UNKNOWN: "unknown",
 
   // AMCD states
@@ -69,15 +66,11 @@ Realm.prototype = {
   AMCD_DOWNLOAD_ERROR: "amcd_download_error",
   AMCD_PARSE_ERROR: "amcd_parse_error",
 
-  // desired state
-  desiredState: null,
-  SIGN_IN_WANTED: "sign_in_wanted",
-  SIGN_OUT_WANTED: "sign_out_wanted",
-
-  // actual state
+  // User connection state
   signinState: null,
   SIGNING_IN: "signing_in",
   SIGNED_IN: "signed_in",
+  SIGNING_OUT: "signing_out",
   SIGNED_OUT: "signed_out",
 
   // FIXME: don't get the domain from the AMCD
@@ -85,7 +78,7 @@ Realm.prototype = {
     if (this._domain)
       return this._domain;
 
-    let domain = new String(this._amcd.domain);
+    let domain = new String(this._domainUrl);
     domain.obj = Utils.makeURL(domain);
     if (domain[domain.length - 1] == '/')
       domain.noslash = domain.slice(0, domain.length - 1);
@@ -94,6 +87,18 @@ Realm.prototype = {
 
     // cache it for next time
     return this._domain = domain;
+  },
+
+  _init: function(realmUrl, domainUrl) {
+    this.amcdState = this.STATE_UNKNOWN;
+    this.signinState = this.STATE_UNKNOWN;
+    if (realmUrl)
+      this.realmUrl = realmUrl;
+    if (domainUrl)
+      this._domainUrl = domainUrl;
+    this.curId = "";
+    this._log = Log4Moz.repository.getLogger(this._logName);
+    this._log.level = Log4Moz.Level[Svc.Prefs.get(this._logPref)];
   },
 
   refreshAmcd: function Realm_refreshAmcd() {
@@ -156,7 +161,7 @@ Realm.prototype = {
     return args;
   },
 
-  updateStatus: function(request, location) {
+  updateStatus: function(progress, request, location) {
     let header; 
     try {
       header = request.getResponseHeader('X-Account-Management-Status');
@@ -167,9 +172,9 @@ Realm.prototype = {
   },
 
   statusChange: function(header) {
-    this._log.debug("changing status: " + header);
     if (!header)
       return;
+    this._log.debug("changing status: " + header);
 
     let re = /^([^;]+)\s*(?:;|$)/;
     let event = re.exec(header);
@@ -225,6 +230,7 @@ Realm.prototype = {
     }
 
     // check if we're already trying to sign in
+    // fixme: doesn't time out or check for errors in any way
     if (this.signinState == this.SIGNING_IN)
       return;
     this.signinState = this.SIGNING_IN;
@@ -261,11 +267,16 @@ Realm.prototype = {
       return;
     }
 
+    // check if we're already trying to sign out
+    // fixme: doesn't time out or check for errors in any way
+    if (this.signinState == this.SIGNING_OUT)
+      return;
+    this.signinState = this.SIGNING_OUT;
+
     if (this._amcd.methods.disconnect['POST']) {
       let disconnect = this._amcd.methods.disconnect.POST;
       let res = new Resource(this.domain.obj.resolve(disconnect.path));
-      let ret = res.get();
-      this.statusChange(ret.headers['X-Account-Management-Status']);
+      this.statusChange(res.get().headers['X-Account-Management-Status']);
     } else
       this._log.warn('No supported methods in common for disconnect');
   }
