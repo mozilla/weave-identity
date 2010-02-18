@@ -59,13 +59,14 @@ function SynthRealmFactory() {
 SynthRealmFactory.prototype = {
   register: function(realm) {
     let domain = realm.prototype._amcd.domain; // xxx
-    this._realms[domain] = realm;
+    domain = Utils.makeURI(domain);
+    this._realms[domain.hostPort] = realm;
   },
   realmUri: function(request, location) {
     this._log.trace("Attempting to find a synthrealm for " + location.hostPort);
-    for (let uri in this._realms) {
-      if (location.scheme + '://' + location.hostPort == uri)
-        return uri;
+    for (let realm in this._realms) {
+      if (location.hostPort == realm)
+        return realm;
     }
     return null;
   },
@@ -77,62 +78,35 @@ SynthRealmFactory.prototype = {
 function BasicSynthRealm(url) {
   // xxx url unused
   this._init();
-  this.realmUrl = this._domainUrl = this._amcd.domain;
+  this.realmUrl = Utils.makeURI(this._amcd.domain).hostPort;
+  this._domainUrl = this._amcd.domain;
 }
 BasicSynthRealm.prototype = {
   __proto__: Realm.prototype,
   _amcd: {
-    "domain": "http://localhost",
+    "domain": "https://www.google.com",
     "methods": {
+      "scrape": {
+        username: "id('guser')/nobr/b[position()=1]"
+      },
       "connect": {
         "POST": {
-          "path":"/signin/",
+          "path":"/accounts/LoginAuth",
           "params": {
-            "username":"unam",
-            "password":"pwd"
+            "username":"Email",
+            "password":"Passwd",
+            "extra": "continue=https%3A%2F%2Fwww.google.com%2Faccounts%2FManageAccount&rmShown=1&signIn=Sign+in&asts="
           }
         }
       },
       "disconnect": {
         "POST": {
-          "path":"/signout/",
-          "params": {
-            "username":"unam",
-            "password":"pwd"
-          }
+          "path":"/accounts/Logout"
         }
       },
       "query": {
         "GET": {
           "path":"/"
-        }
-      },
-      "register": {
-        "POST": {
-          "path":"/user/",
-          "schemas": {
-            "poco":"http://portablecontacts/ns/1.0"
-          },
-          "params": {
-            "username":"unam",
-            "password":"pwd",
-            "password_verify":"pwd2",
-            "poco": {
-              "givenName": "fname",
-              "familyName": "lname"
-            }
-          }
-        }
-      },
-      "changepassword": {
-        "POST": {
-          "path":"/changepass/",
-          "params": {
-            "username":"unam",
-            "old_password":"old_pwd",
-            "password":"pwd",
-            "password_verify":"pwd2"
-          }
         }
       }
     }
@@ -146,7 +120,9 @@ BasicSynthRealm.prototype = {
   updateStatus: function(progress, request, location) {
     if (progress.isLoadingDocument)
       return; // need the full doc to scrape it
-    let user = progress.DOMWindow.document.getElementById("username");
+    let doc = progress.DOMWindow.document;
+    let user = doc.evaluate(this._amcd.methods.scrape.username,
+                            doc, null, 0, null).iterateNext();
     if (user)
       this.statusChange('active; name="' + user.innerHTML + '"');
     else

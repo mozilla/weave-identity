@@ -240,14 +240,29 @@ Realm.prototype = {
       let logins = Utils.getLogins(this.domain.noslash);
       let username, password;
       if (logins && logins.length > 0) {
-        username = logins[0].username;
-        password = logins[0].password;
+        try {
+        username = encodeURIComponent(logins[0].username);
+        password = encodeURIComponent(logins[0].password);
+        } catch (e) {
+          this._log.debug(e);
+          throw e;
+        }
       }
+
+      let res1 = new Resource("https://www.google.com/accounts/Login");
+      let foo = res1.get();
+      let dsh =
+        /^\s*<input\s*type="hidden"\s*name="dsh"\s*id="dsh"\s*value="([^"]*)"\s*\/>\s*$/m
+        .exec("" + foo)[1];
+      let galx =
+        /^\s*<input\s*type="hidden"\s*name="GALX"\s*value="([^"]*)"\s*\/>\s*$/m
+        .exec("" + foo)[1];
 
       let res = new Resource(this.domain.obj.resolve(connect.path));
       res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
       let ret = res.post(connect.params.username + '=' + username + '&' +
-                         connect.params.password + '=' + password);
+                         connect.params.password + '=' + password + '&' +
+                         'dsh=' + dsh + '&GALX=' + galx);
       this.statusChange(ret.headers['X-Account-Management-Status']);
 
     } else
