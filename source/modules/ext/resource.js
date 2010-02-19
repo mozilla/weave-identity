@@ -271,12 +271,135 @@ Resource.prototype = {
     Utils.lazy2(ret, "obj", function() JSON.parse(ret));
 
     // lazy getter to convert XML to a DOM object
-    Utils.lazy2(ret, "xmldom", function() {
+    Utils.lazy2(ret, "xmldom", Utils.bind2(function() {
       let DOMParser = new Components.Constructor("@mozilla.org/xmlextras/domparser;1", "nsIDOMParser");
       let parser = new DOMParser();
       parser.init(this.spec, this.spec, this.spec);
       return parser.parseFromString(ret, "text/xml");
-    });
+    }));
+
+    // lazy getter to convert HTML to a DOM object
+    Utils.lazy2(ret, "dom", Utils.bind2(this, function() {
+      return this._parse(this.uri, ret);
+    }));
+
+    return ret;
+  },
+
+  /**
+   * Stole this code from nsMycrosummaryService.js, thanks Myk!
+   * 
+   * Parse a string of HTML text.  Used by _load() when it retrieves HTML.
+   * We do this via hidden XUL iframes, which according to bz is the best way
+   * to do it currently, since bug 102699 is hard to fix.
+   * 
+   * @param   uri
+   *          nsIURI of the URI matching the content
+   * @param   htmlText
+   *          a string containing the HTML content
+   *
+   */
+  _parse: function Res__parse(uri, htmlText) {
+    this._log.debug("Parsing HTML");
+    if (!uri) {
+      this._log.error("Cannot parse HTML without a URI");
+      return null;
+    }
+    // Find a window to stick our hidden iframe into.
+    var windowMediator = Cc['@mozilla.org/appshell/window-mediator;1'].
+      getService(Ci.nsIWindowMediator);
+    var window = windowMediator.getMostRecentWindow("navigator:browser");
+    // XXX We can use other windows, too, so perhaps we should try to get
+    // some other window if there's no browser window open.  Perhaps we should
+    // even prefer other windows, since there's less chance of any browser
+    // window machinery like throbbers treating our load like one initiated
+    // by the user.
+    if (!window) {
+      this._log.error("Could not find a window to parse HTML in");
+      return null;
+    }
+    var document = window.document;
+    var rootElement = document.documentElement;
+
+    // Create an iframe, make it hidden, and secure it against untrusted content.
+    let iframe = document.createElement('iframe');
+    iframe.setAttribute("collapsed", true);
+    iframe.setAttribute("type", "content");
+
+    // Insert the iframe into the window, creating the doc shell.
+    rootElement.appendChild(iframe);
+
+    // When we insert the iframe into the window, it immediately starts loading
+    // about:blank, which we don't need and could even hurt us (for example
+    // by triggering bugs like bug 344305), so cancel that load.
+    var webNav = iframe.docShell.QueryInterface(Ci.nsIWebNavigation);
+    webNav.stop(Ci.nsIWebNavigation.STOP_NETWORK);
+
+    // Turn off JavaScript and auth dialogs for security and other things
+    // to reduce network load.
+    // XXX We should also turn off CSS.
+    iframe.docShell.allowJavascript = false;
+    iframe.docShell.allowAuth = false;
+    iframe.docShell.allowPlugins = false;
+    iframe.docShell.allowMetaRedirects = false;
+    iframe.docShell.allowSubframes = false;
+    iframe.docShell.allowImages = false;
+
+    // Convert the HTML text into an input stream.
+    var converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
+      createInstance(Ci.nsIScriptableUnicodeConverter);
+    converter.charset = "UTF-8";
+    var stream = converter.convertToInputStream(htmlText);
+
+    // Set up a channel to load the input stream.
+    var channel = Cc["@mozilla.org/network/input-stream-channel;1"].
+      createInstance(Ci.nsIInputStreamChannel);
+    channel.setURI(uri);
+    channel.contentStream = stream;
+
+    // Load in the background so we don't trigger web progress listeners.
+    var request = channel.QueryInterface(Ci.nsIRequest);
+    request.loadFlags |= Ci.nsIRequest.LOAD_BACKGROUND;
+
+    // Specify the content type since we're not loading content from a server,
+    // so it won't get specified for us, and if we don't specify it ourselves,
+    // then Firefox will prompt the user to download content of "unknown type".
+    var baseChannel = channel.QueryInterface(Ci.nsIChannel);
+    baseChannel.contentType = "text/html";
+
+    // Load as UTF-8, which it'll always be, because XMLHttpRequest converts
+    // the text (i.e. XMLHTTPRequest.responseText) from its original charset
+    // to UTF-16, then the string input stream component converts it to UTF-8.
+    baseChannel.contentCharset = "UTF-8";
+
+    // Create a sync version of the uri loader function and a callback
+    // we can pass around to event listeners
+    let uriLoader = Cc["@mozilla.org/uriloader;1"].getService(Ci.nsIURILoader);
+    let [openURI, openCb] = Sync.withCb(uriLoader.openURI, uriLoader);
+
+    // Register the parse handler as a load event listener.
+    // Listen for "DOMContentLoaded" instead of "load" because background loads
+    // don't fire "load" events.
+    var parseHandler = {
+      _self: this,
+      handleEvent: function Res_parseHandler_handleEvent(event) {
+        event.target.removeEventListener("DOMContentLoaded", this, false);
+        try     { openCb(event); }
+        catch (e) { dump("ERROR: " + e + "\n"); }
+        finally { this._self = null; }
+      }
+    };
+    iframe.addEventListener("DOMContentLoaded", parseHandler, true);
+
+    // Start the load (sync/async), wrap in a try/catch just in case
+
+    let ret = null;
+    try {
+      openURI(channel, true, iframe.docShell);
+      ret = iframe.contentDocument;
+    } catch (e) {
+      this._log.error("Could not parse HTML: " + e);
+    }
 
     return ret;
   },

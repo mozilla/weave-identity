@@ -240,29 +240,28 @@ Realm.prototype = {
       let logins = Utils.getLogins(this.domain.noslash);
       let username, password;
       if (logins && logins.length > 0) {
-        try {
         username = encodeURIComponent(logins[0].username);
         password = encodeURIComponent(logins[0].password);
+      }
+
+      let params = connect.params.username + '=' + username + '&' +
+        connect.params.password + '=' + password;
+
+      if (connect.challenge) {
+        try {
+          let uri = this.domain.obj.resolve(connect.challenge.path);
+          let dom = new Resource(uri).get().dom;
+          let xp = dom.evaluate(connect.challenge.xpath, dom, null, 0, null);
+          let foo = xp.iterateNext();
+          params += '&' + connect.challenge.param + '=' + foo.value;
         } catch (e) {
-          this._log.debug(e);
-          throw e;
+          this._log.error("Error fetching connect challenge: " + e);
         }
       }
 
-      let res1 = new Resource("https://www.google.com/accounts/Login");
-      let foo = res1.get();
-      let dsh =
-        /^\s*<input\s*type="hidden"\s*name="dsh"\s*id="dsh"\s*value="([^"]*)"\s*\/>\s*$/m
-        .exec("" + foo)[1];
-      let galx =
-        /^\s*<input\s*type="hidden"\s*name="GALX"\s*value="([^"]*)"\s*\/>\s*$/m
-        .exec("" + foo)[1];
-
       let res = new Resource(this.domain.obj.resolve(connect.path));
       res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-      let ret = res.post(connect.params.username + '=' + username + '&' +
-                         connect.params.password + '=' + password + '&' +
-                         'dsh=' + dsh + '&GALX=' + galx);
+      let ret = res.post(params);
       this.statusChange(ret.headers['X-Account-Management-Status']);
 
     } else

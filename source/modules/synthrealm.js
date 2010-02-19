@@ -94,8 +94,12 @@ BasicSynthRealm.prototype = {
           "path":"/accounts/LoginAuth",
           "params": {
             "username":"Email",
-            "password":"Passwd",
-            "extra": "continue=https%3A%2F%2Fwww.google.com%2Faccounts%2FManageAccount&rmShown=1&signIn=Sign+in&asts="
+            "password":"Passwd"
+          },
+          "challenge": {
+            path:"/accounts/Login",
+            param:"GALX",
+            xpath:"id('gaia_loginform')//input[@name='GALX']/@value"
           }
         }
       },
