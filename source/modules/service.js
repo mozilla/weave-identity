@@ -80,7 +80,7 @@ WeaveIDSvc.prototype = {
     this._log.info(ua);
 
     this._locationCache = new Cache();
-    this._synthRealms = new SynthRealmFactory();
+    this._synthRealms = new SynthRealmManager();
 
     try {
       this._docLoader = Cc["@mozilla.org/docloaderservice;1"]

@@ -498,7 +498,7 @@ let Utils = {
       return Svc.IO.newURI(URIString, null, null);
     } catch (e) {
       let log = Log4Moz.repository.getLogger("Service.Util");
-      log.debug("Could not create URI: " + Utils.exceptionStr(e));
+      log.debug("Could not create URI (" + URIString + "): " + Utils.exceptionStr(e));
       return null;
     }
   },

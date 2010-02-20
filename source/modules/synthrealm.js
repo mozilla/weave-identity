@@ -34,7 +34,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-const EXPORTED_SYMBOLS = ['SynthRealmFactory'];
+const EXPORTED_SYMBOLS = ['SynthRealmManager'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -42,93 +42,100 @@ const Cr = Components.results;
 const Cu = Components.utils;
 
 Cu.import("resource://weave-identity/ext/log4moz.js");
+Cu.import("resource://weave-identity/ext/Observers.js");
 Cu.import("resource://weave-identity/ext/resource.js");
 Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
-Cu.import("resource://weave-identity/realm.js");
 
-function SynthRealmFactory() {
-  this._log = Log4Moz.repository.getLogger("SynthRealmFactory");
+let bundled = {desc: [], realm: []};
+for each (let res in ['base', 'google']) {
+  let sym = {};
+  Cu.import("resource://weave-identity/synth/" + res + ".js", sym);
+  if (sym.desc)
+    bundled.desc.push(sym.desc);
+  if (sym.realm)
+    bundled.realm.push(sym.realm);
+}
+
+function SynthRealmManager() {
+  this._log = Log4Moz.repository.getLogger("SynthRealmManager");
   this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
 
+  this._desc = {};
   this._realms = {};
 
-  // register bundled realms
-  this.register(BasicSynthRealm);
-}
-SynthRealmFactory.prototype = {
-  register: function(realm) {
-    let domain = realm.prototype._amcd.domain; // xxx
-    domain = Utils.makeURI(domain);
-    this._realms[domain.hostPort] = realm;
-  },
-  realmUri: function(request, location) {
-    this._log.trace("Attempting to find a synthrealm for " + location.hostPort);
-    for (let realm in this._realms) {
-      if (location.hostPort == realm)
-        return realm;
-    }
-    return null;
-  },
-  makeRealm: function(url) {
-    return new this._realms[url](url);
+  // auto-register bundled synth realms & descriptors
+  for each (let r in bundled.realm) {
+    this.registerRealm(r);
   }
-};
+  for each (let d in bundled.desc) {
+    this.registerDescriptor(d);
+  }
 
-function BasicSynthRealm(url) {
-  // xxx url unused
-  this._init();
-  this.realmUrl = Utils.makeURI(this._amcd.domain).hostPort;
-  this._domainUrl = this._amcd.domain;
+  // let others know the manager has started, so they can register with it now
+  Observers.notify("weaveid-synth-manager-start");
 }
-BasicSynthRealm.prototype = {
-  __proto__: Realm.prototype,
-  _amcd: {
-    "domain": "https://www.google.com",
-    "methods": {
-      "scrape": {
-        username: "id('guser')/nobr/b[position()=1]"
-      },
-      "connect": {
-        "POST": {
-          "path":"/accounts/LoginAuth",
-          "params": {
-            "username":"Email",
-            "password":"Passwd"
-          },
-          "challenge": {
-            path:"/accounts/Login",
-            param:"GALX",
-            xpath:"id('gaia_loginform')//input[@name='GALX']/@value"
-          }
-        }
-      },
-      "disconnect": {
-        "POST": {
-          "path":"/accounts/Logout"
-        }
-      },
-      "query": {
-        "GET": {
-          "path":"/"
-        }
+SynthRealmManager.prototype = {
+  registerDescriptor: function(desc) {
+    // FIXME: check overwrite and warn (?)
+    this._desc[desc.realmUri] = desc;
+  },
+
+  registerRealm: function(realm) {
+    // FIXME: check overwrite and warn (?)
+    this._realms[realm.name] = realm;
+  },
+
+  getDescriptorForUri: function(uri) {
+    if (typeof uri == 'string')
+      uri = Utils.makeURI(value);
+
+    this._log.trace("Finding a synthrealm descriptor for " + uri.spec);
+
+    // first check for an exact match
+    for each (let d in this._desc) {
+      for each (let u in d.matchingUris) {
+        u = Utils.makeURI(u);
+        if (u.equals(uri))
+          return d;
       }
     }
+
+    // check for matching domain - XXX ignore scheme?
+    for each (d in this._desc) {
+      for each (let u in d.matchingUris) {
+        u = Utils.makeURI(u);
+        if (u.hostPort == uri.hostPort)
+          return d;
+      }
+    }
+
+    return null;
   },
 
-  refreshAmcd: function() {
-    this._log.trace("refreshAmcd");
-    this.amcdState = this.AMCD_OK;
+  // FIXME: kind of an API mess, clean up!
+
+  // XXX should this return singletons instead?
+  newRealmForUri: function(uri) {
+    let desc = this.getDescriptorForUri(uri);
+    if (desc)
+      return this.makeRealm(desc.realmUri);
+    return null;
   },
 
-  updateStatus: function(progress, request, location) {
-    if (progress.isLoadingDocument)
-      return; // need the full doc to scrape it
-    let user = Utils.xpathText(progress.DOMWindow.document,
-                               this._amcd.methods.scrape.username);
-    if (user)
-      this.statusChange('active; name="' + user + '"');
-    else
-      this.statusChange('none;');
+  // XXX should this return singletons instead?
+  makeRealm: function(uri) {
+    this._log.trace("Attempting to make a synthrealm for " + uri);
+    let d = this._desc[uri];
+    if (!d || !this._realms[d.realmClass])
+      return null;
+    return new this._realms[d.realmClass](d);
+  },
+
+  realmUri: function(request, location) {
+    let d = this.getDescriptorForUri(location);
+    if (d)
+      return d.realmUri;
+    return null;
   }
 };
