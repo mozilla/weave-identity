@@ -518,6 +518,19 @@ let Utils = {
                            Ci.nsIDOMXPathResult.ANY_TYPE, null);
   },
 
+  // return the text value of the first node matched by an xpath expression
+  // works with attributes, text nodes, and HTML elements (using .innerHTML)
+  xpathText: function(doc, expr) {
+    try {
+      let iter = Utils.xpath(doc, expr);
+      let foo = iter.iterateNext();
+      return foo.nodeValue? foo.nodeValue :
+        (foo.innerText? foo.innerText : foo.innerHTML);
+    } catch (e) {
+      return undefined;
+    }
+  },
+
   getTmp: function Weave_getTmp(name) {
     let tmp = Svc.Directory.get("ProfD", Ci.nsIFile);
     tmp.QueryInterface(Ci.nsILocalFile);

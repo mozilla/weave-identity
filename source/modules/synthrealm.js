@@ -124,11 +124,10 @@ BasicSynthRealm.prototype = {
   updateStatus: function(progress, request, location) {
     if (progress.isLoadingDocument)
       return; // need the full doc to scrape it
-    let doc = progress.DOMWindow.document;
-    let user = doc.evaluate(this._amcd.methods.scrape.username,
-                            doc, null, 0, null).iterateNext();
+    let user = Utils.xpathText(progress.DOMWindow.document,
+                               this._amcd.methods.scrape.username);
     if (user)
-      this.statusChange('active; name="' + user.innerHTML + '"');
+      this.statusChange('active; name="' + user + '"');
     else
       this.statusChange('none;');
   }

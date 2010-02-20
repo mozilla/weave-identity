@@ -240,23 +240,20 @@ Realm.prototype = {
       let logins = Utils.getLogins(this.domain.noslash);
       let username, password;
       if (logins && logins.length > 0) {
-        username = encodeURIComponent(logins[0].username);
-        password = encodeURIComponent(logins[0].password);
+        username = logins[0].username;
+        password = logins[0].password;
       }
 
-      let params = connect.params.username + '=' + username + '&' +
-        connect.params.password + '=' + password;
+      let params = 
+        connect.params.username + '=' + encodeURIComponent(username) + '&' +
+        connect.params.password + '=' + encodeURIComponent(password);
 
       if (connect.challenge) {
-        try {
-          let uri = this.domain.obj.resolve(connect.challenge.path);
-          let dom = new Resource(uri).get().dom;
-          let xp = dom.evaluate(connect.challenge.xpath, dom, null, 0, null);
-          let foo = xp.iterateNext();
-          params += '&' + connect.challenge.param + '=' + foo.value;
-        } catch (e) {
-          this._log.error("Error fetching connect challenge: " + e);
-        }
+        let uri = this.domain.obj.resolve(connect.challenge.path);
+        let dom = new Resource(uri).get().dom;
+        let str = Utils.xpathText(dom, connect.challenge.xpath);
+        if (str)
+          params += '&' + connect.challenge.param + '=' + encodeURIComponent(str);
       }
 
       let res = new Resource(this.domain.obj.resolve(connect.path));
