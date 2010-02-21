@@ -88,7 +88,8 @@ SynthRealm.prototype = {
     let params = 
       connect.params.username + '=' + encodeURIComponent(username) + '&' +
       connect.params.password + '=' + encodeURIComponent(password);
-
+    if (connect.params._extra)
+      params += '&' + connect.params._extra;
     if (connect._challenge) {
       let uri = this.domain.obj.resolve(connect._challenge.path);
       let dom = new Resource(uri).get().dom;

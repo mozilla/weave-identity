@@ -48,7 +48,8 @@ Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
 Cu.import("resource://weave-identity/realm.js");
 
-const BUNDLED_REALMS = ['base', 'google', 'yahoo'];
+const BUNDLED_REALMS = ['base', 'google', 'yahoo',
+                        'bugzilla.mozilla', 'addons.mozilla', 'getpersonas'];
 
 function SynthRealmManager() {
   this._log = Log4Moz.repository.getLogger("SynthRealmManager");

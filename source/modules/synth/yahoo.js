@@ -64,7 +64,7 @@ let desc = {
     "_domain": "https://login.yahoo.com",
     "methods": {
       "_scrape": {
-        username: "//*[contains(@class,'tuc-dropdown')]/li[position()=last()]/strong"
+        username: "//ul[contains(@class,'tuc-dropdown')]/li[position()=last()]/strong"
       },
       "connect": {
         "POST": {
