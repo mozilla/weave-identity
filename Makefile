@@ -41,11 +41,11 @@ stage_dir=$(objdir)/stage
 xpi_dir=$(objdir)/xpi
 
 addon_name := account-manager
-addon_version := 0.0.2
+addon_version := 0.0.3
 
 ifeq ($(release_build),)
   xpi_type := dev
-  update_url := https://people.mozilla.com/~dmills/account-manager/dist/update.rdf
+  update_url := https://people.mozilla.com/~dmills/account-manager/update.rdf
 else
   xpi_type := rel
 endif
