@@ -34,7 +34,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-let EXPORTED_SYMBOLS = ['realm', 'SynthRealm'];
+let EXPORTED_SYMBOLS = ['desc', 'realm', 'YahooSynthRealm'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -44,39 +44,66 @@ const Cu = Components.utils;
 Cu.import("resource://weave-identity/ext/log4moz.js");
 Cu.import("resource://weave-identity/ext/resource.js");
 Cu.import("resource://weave-identity/util.js");
-Cu.import("resource://weave-identity/realm.js");
 
-function SynthRealm(descriptor) {
-  this._init(descriptor);
+// base.js exports 'realm', so we can't import it into our global scope
+let sym = {};
+Cu.import("resource://weave-identity/synth/base.js", sym);
+this['SynthRealm'] = sym.SynthRealm;
+
+// note: Yahoo! changes element IDs on their pages in a seemingly
+// random manner.  So the scrape expression uses a class which I
+// presume will be more stable (?)
+let desc = {
+  realmUri: 'yahoo.com',
+  realmClass: 'YahooSynthRealm',
+  matchingUris: [
+    'http://www.yahoo.com',
+    'https://www.yahoo.com'
+  ],
+  amcd: {
+    "_domain": "https://login.yahoo.com",
+    "methods": {
+      "_scrape": {
+        username: "//*[contains(@class,'tuc-dropdown')]/li[position()=last()]/strong"
+      },
+      "connect": {
+        "POST": {
+          "path":"/config/login",
+          "params": {
+            "username":"login",
+            "password":"passwd"
+          },
+          "_challenge": {
+            path:"/config/login",
+            param: ".challenge",
+            xpath:"//form[@name='login_form']/input[@name='.challenge']/@value"
+          }
+        }
+      },
+      "disconnect": {
+        "POST": {
+          "path":"/config/login?logout=1"
+        }
+      },
+      "query": {
+        "GET": {
+          "path":"/"
+        }
+      }
+    }
+  }
 };
-SynthRealm.prototype = {
-  __proto__: Realm.prototype,
 
-  _init: function(descriptor) {
-    this._amcd = descriptor.amcd;
-    Realm.prototype._init.apply(this, [descriptor.realmUri, this._amcd._domain]);
-    this._log = Log4Moz.repository.getLogger("SynthRealm");
-    this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
-  },
-
-  refreshAmcd: function() {
-    this._log.trace("refreshAmcd");
-    this.amcdState = this.AMCD_OK;
-  },
-
-  updateStatus: function(progress, request, location) {
-    if (progress.isLoadingDocument)
-      return; // need the full doc to scrape it
-    let user = Utils.xpathText(progress.DOMWindow.document,
-                               this._amcd.methods._scrape.username);
-    this._log.trace("Scraped username: " + user);
-    if (user)
-      this.statusChange('active; name="' + user + '"');
-    else
-      this.statusChange('none;');
-  },
+function YahooSynthRealm(descriptor) {
+  this._init(descriptor);
+  this._log = Log4Moz.repository.getLogger("YahooSynthRealm");
+  this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
+};
+YahooSynthRealm.prototype = {
+  __proto__: SynthRealm.prototype,
 
   _connect_POST: function() {
+    try {
     let connect = this._amcd.methods.connect.POST;
     let logins = Utils.getLogins(this.domain.noslash);
     let username, password;
@@ -86,21 +113,28 @@ SynthRealm.prototype = {
     }
 
     let params = 
-      connect.params.username + '=' + encodeURIComponent(username) + '&' +
-      connect.params.password + '=' + encodeURIComponent(password);
+      connect.params.username + '=' + encodeURIComponent(username);
 
     if (connect._challenge) {
       let uri = this.domain.obj.resolve(connect._challenge.path);
       let dom = new Resource(uri).get().dom;
       let str = Utils.xpathText(dom, connect._challenge.xpath);
-      if (str)
+      if (str) {
+        // fixme - see yahoo's login js
+        params += '&' + connect.params.password + '=' + encodeURIComponent(password);
         params += '&' + connect._challenge.param + '=' + encodeURIComponent(str);
+      }
+    } else {
+      params += '&' + connect.params.password + '=' + encodeURIComponent(password);      
     }
 
     let res = new Resource(this.domain.obj.resolve(connect.path));
     res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     let ret = res.post(params);
     this.statusChange(ret.headers['X-Account-Management-Status']);
+    } catch (e) {
+      this._log.error(e);
+    }
   }
 };
-let realm = SynthRealm; // so we can export both SynthRealm and realm
+let realm = YahooSynthRealm;

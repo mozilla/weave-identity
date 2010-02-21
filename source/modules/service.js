@@ -218,10 +218,14 @@ WeaveIDSvc.prototype = {
       .createInstance(Ci.nsIDOMParser);
     let doc = parser.parseFromString(hostmeta, "text/xml");
 
-    for each (let link in doc.getElementsByTagName("Link")) {
-      if (link.hasAttribute('rel') &&
-          link.getAttribute('rel') == "http://services.mozilla.com/amcd/0.1")
-        return location.resolve(link.getAttribute('href'));
+    let paths = ["//Link[@rel='http://services.mozilla.com/amcd/0.1'/@href",
+                 "//Link[@rel='http://services.mozilla.com/amcd/0.1'/href",
+                 "//Link[rel='http://services.mozilla.com/amcd/0.1'/@href",
+                 "//Link[rel='http://services.mozilla.com/amcd/0.1'/href"];
+    for each (let path in paths) {
+      let elt = Utils.xpathText(doc, path);
+      if (elt)
+        return location.resolve(elt);
     }
     return null;
   }

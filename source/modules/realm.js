@@ -83,7 +83,7 @@ Realm.prototype = {
     if (domain[domain.length - 1] == '/')
       domain.noslash = domain.slice(0, domain.length - 1);
     else
-      domain.noslash = this._amcd.domain;
+      domain.noslash = this._domainUrl;
 
     // cache it for next time
     return this._domain = domain;
@@ -236,33 +236,27 @@ Realm.prototype = {
     this.signinState = this.SIGNING_IN;
 
     if (this._amcd.methods.connect['POST']) {
-      let connect = this._amcd.methods.connect.POST;
-      let logins = Utils.getLogins(this.domain.noslash);
-      let username, password;
-      if (logins && logins.length > 0) {
-        username = logins[0].username;
-        password = logins[0].password;
-      }
-
-      let params = 
-        connect.params.username + '=' + encodeURIComponent(username) + '&' +
-        connect.params.password + '=' + encodeURIComponent(password);
-
-      if (connect.challenge) {
-        let uri = this.domain.obj.resolve(connect.challenge.path);
-        let dom = new Resource(uri).get().dom;
-        let str = Utils.xpathText(dom, connect.challenge.xpath);
-        if (str)
-          params += '&' + connect.challenge.param + '=' + encodeURIComponent(str);
-      }
-
-      let res = new Resource(this.domain.obj.resolve(connect.path));
-      res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-      let ret = res.post(params);
-      this.statusChange(ret.headers['X-Account-Management-Status']);
+      this._connect_POST();
 
     } else
       this._log.warn('No supported methods in common for connect');
+  },
+  _connect_POST: function() {
+    let connect = this._amcd.methods.connect.POST;
+    let logins = Utils.getLogins(this.domain.noslash);
+    let username, password;
+    if (logins && logins.length > 0) {
+      username = logins[0].username;
+      password = logins[0].password;
+    }
+
+    let params = 
+      connect.params.username + '=' + encodeURIComponent(username) + '&' +
+      connect.params.password + '=' + encodeURIComponent(password);
+    let res = new Resource(this.domain.obj.resolve(connect.path));
+    res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    let ret = res.post(params);
+    this.statusChange(ret.headers['X-Account-Management-Status']);
   },
 
   disconnect: function() {

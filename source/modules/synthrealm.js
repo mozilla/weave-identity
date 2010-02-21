@@ -46,16 +46,9 @@ Cu.import("resource://weave-identity/ext/Observers.js");
 Cu.import("resource://weave-identity/ext/resource.js");
 Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
+Cu.import("resource://weave-identity/realm.js");
 
-let bundled = {desc: [], realm: []};
-for each (let res in ['base', 'google']) {
-  let sym = {};
-  Cu.import("resource://weave-identity/synth/" + res + ".js", sym);
-  if (sym.desc)
-    bundled.desc.push(sym.desc);
-  if (sym.realm)
-    bundled.realm.push(sym.realm);
-}
+const BUNDLED_REALMS = ['base', 'google', 'yahoo'];
 
 function SynthRealmManager() {
   this._log = Log4Moz.repository.getLogger("SynthRealmManager");
@@ -65,11 +58,17 @@ function SynthRealmManager() {
   this._realms = {};
 
   // auto-register bundled synth realms & descriptors
-  for each (let r in bundled.realm) {
-    this.registerRealm(r);
-  }
-  for each (let d in bundled.desc) {
-    this.registerDescriptor(d);
+  for each (let res in BUNDLED_REALMS) {
+    let sym = {};
+    try {
+      Cu.import("resource://weave-identity/synth/" + res + ".js", sym);
+    } catch (e) {
+      this._log.error("Could not load synth/" + res + ".js: " + e);
+    }
+    if (sym.desc)
+      this.registerDescriptor(sym.desc);
+    if (sym.realm)
+      this.registerRealm(sym.realm);
   }
 
   // let others know the manager has started, so they can register with it now

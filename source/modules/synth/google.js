@@ -37,7 +37,7 @@
 let EXPORTED_SYMBOLS = ['desc'];
 
 let desc = {
-  realmUri: 'www.google.com',
+  realmUri: 'google.com',
   realmClass: 'SynthRealm',
   matchingUris: [
     'http://www.google.com',
@@ -46,9 +46,9 @@ let desc = {
     'https://docs.google.com'
   ],
   amcd: {
-    "domain": "https://www.google.com",
+    "_domain": "https://www.google.com",
     "methods": {
-      "scrape": {
+      "_scrape": {
         username: "id('guser')/nobr/b[position()=1]"
       },
       "connect": {
@@ -58,7 +58,7 @@ let desc = {
             "username":"Email",
             "password":"Passwd"
           },
-          "challenge": {
+          "_challenge": {
             path:"/accounts/Login",
             param:"GALX",
             xpath:"id('gaia_loginform')//input[@name='GALX']/@value"
