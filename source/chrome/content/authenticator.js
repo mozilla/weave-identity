@@ -62,9 +62,9 @@ let gWeaveAuthenticator = {
     return this._state = document.getElementById("acct-auth-state");
   },
 
-  get _icon() {
-    delete this._icon;
-    return this._icon = document.getElementById("acct-auth-icon");
+  get _button() {
+    delete this._button;
+    return this._button = document.getElementById("acct-auth-button");
   },
 
   get _popup() {
@@ -100,7 +100,6 @@ let gWeaveAuthenticator = {
 
   onLoad: function() {
     if (WeaveID.Svc.Prefs.get("authenticator.enabled")) {
-      this._icon.hidden = false;
       gBrowser.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
       this.Observers.add("weaveid-realm-updated", this.onRealmUpdated, this);
     }
@@ -137,8 +136,8 @@ let gWeaveAuthenticator = {
   //**************************************************************************//
   // UI Callbacks
 
-  onIconClick: function(event) {
-    this._popup.openPopup(this._icon, "after_end", 27);
+  onButtonCommand: function(event) {
+    this._popup.openPopup(this._button, "after_end", 25, -10);
   },
 
   onPopupShowing: function(event) {

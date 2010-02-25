@@ -1,0 +1,6 @@
+<!ENTITY acct-auth-button-label "Account">
+<!ENTITY acct-auth-button-tooltip "View or edit your personalized connection to this site">
+
+<!ENTITY acct-auth-disconnect-label "Disconnect">
+<!ENTITY acct-auth-connect-label1 "Connect to this site">
+<!ENTITY acct-auth-connect-label2 "to see personalized content:">

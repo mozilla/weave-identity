@@ -1,15 +1,22 @@
-#acct-auth-icon[state="unknown"],
-#acct-auth-icon[state="signed_out"] {
+/*  skin/toolbar-button.css  */
+
+#acct-auth-button,
+#acct-auth-button[state="unknown"],
+#acct-auth-button[state="signed_out"] {
   list-style-image: url("chrome://weave-identity/skin/auth-disabled.png");
 }
 
-#acct-auth-icon[state="signed_in"] {
+#acct-auth-button[state="signed_in"] {
   list-style-image: url("chrome://weave-identity/skin/auth-enabled.png");
 }
 
-#acct-auth-icon[state="signing_in"] {
+#acct-auth-button[state="signing_in"] {
   list-style-image: url("chrome://weave-identity/skin/auth-auto.png");
 }
+
+/*toolbar[iconsize="small"] #acct-auth-button {
+  list-style-image: url("chrome://myextension/skin/btn_small.png");
+}*/
 
 /* Show the appropriate part of the panel based on the current state. */
 
