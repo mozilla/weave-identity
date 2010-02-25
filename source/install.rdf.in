@@ -51,10 +51,10 @@
    
     <!-- Front End MetaData -->
     <em:name>Account Manager</em:name>
-    <em:description>Account Manager helps you register and sign in &amp; out of online sites and services.</em:description>
+    <em:description>Account Manager is an experiment from Mozilla Labs that helps you connect to sites and services by automating registration and sign-in.</em:description>
     <em:creator>Mozilla Labs Team</em:creator>
     <em:homepageURL>http://labs.mozilla.com/projects/weave/</em:homepageURL>
     @update_url_tag@
-    <em:iconURL>chrome://weave-identity/skin/weave-32x32.png</em:iconURL>
+    <em:iconURL>chrome://weave-identity/skin/experiment.png</em:iconURL>
   </Description>      
 </RDF>
