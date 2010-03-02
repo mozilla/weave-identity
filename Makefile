@@ -74,10 +74,12 @@ ifeq ($(MAKECMDGOALS),xpi)
   unpacked =\#
   jar=
   chrometarget=xpi
+  content_jar=jar:chrome/content.jar!/
 else
   unpacked=
   jar=\#
   chrometarget=
+  content_jar=chrome/
 endif
 
 subst_names := \
@@ -88,7 +90,8 @@ subst_names := \
   update_url \
   update_url_tag \
   unpacked \
-  jar
+  jar \
+  content_jar
 export $(subst_names)
 export substitute = perl -pe 's/@([^@]+)@/defined $$$$ENV{$$$$1} ? $$$$ENV{$$$$1} : $$$$&/ge'
 

@@ -1,48 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?xml-stylesheet href="chrome://weave-identity/content/overlay.css" type="text/css"?>
-<?xml-stylesheet href="chrome://weave-identity/content/notification.css" type="text/css"?>
+<?xml-stylesheet href="chrome://weave-identity-common/skin/overlay.css" type="text/css"?>
+<?xml-stylesheet href="chrome://weave-identity/skin/overlay.css" type="text/css"?>
 
 <!DOCTYPE overlay SYSTEM "chrome://weave-identity/locale/overlay.dtd">
 
 <overlay id="acct-overlay" xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
 
-    <script type="application/x-javascript"
-            src="chrome://weave-identity/content/authenticator.js"/>
-			
-    <stringbundleset id="stringbundleset">
-      <stringbundle id="acct-auth-strings"
-                    src="chrome://weave-identity/locale/overlay.properties"/>
-    </stringbundleset>
+  <script type="application/x-javascript"
+          src="chrome://weave-identity/content/authenticator.js"/>
+  
+  <stringbundleset id="stringbundleset">
+    <stringbundle id="acct-auth-strings"
+                  src="chrome://weave-identity/locale/overlay.properties"/>
+  </stringbundleset>
 
-    <broadcasterset id="mainBroadcasterSet">
-      <broadcaster id="acct-auth-state" state="disabled"/>
-    </broadcasterset>
+  <broadcasterset id="mainBroadcasterSet">
+    <broadcaster id="acct-auth-state" state="disabled"/>
+  </broadcasterset>
 
-    <popupset id="mainPopupSet">
-      <panel id="acct-auth-popup"
-             observes="acct-auth-state"
-             onpopupshowing="gWeaveAuthenticator.onPopupShowing(event);">
-        <vbox id="acct-auth-popup-can-register">
-          <description id="acct-auth-can-register-desc"></description>
-        </vbox>
-        <vbox id="acct-auth-popup-signed-in">
-          <description id="acct-auth-signed-in-desc"></description>
-          <button label="&acct-auth-disconnect-label;"
-                  oncommand="gWeaveAuthenticator.onDisconnect();"/>
-        </vbox>
-        <vbox id="acct-auth-popup-signed-out">
-          <description id="acct-auth-signed-out-desc">&acct-auth-connect-label1;</description>
-          <description>&acct-auth-connect-label2;</description>
-          <button label="Connect" oncommand="gWeaveAuthenticator.onConnect();"/>
-        </vbox>
-      </panel>
-    </popupset>
+  <popupset id="mainPopupSet">
+    <panel id="acct-auth-popup"
+           observes="acct-auth-state"
+           onpopupshowing="gWeaveAuthenticator.onPopupShowing(event);">
+      <vbox id="acct-auth-popup-can-register">
+        <description id="acct-auth-can-register-desc"></description>
+      </vbox>
+      <vbox id="acct-auth-popup-signed-in">
+        <description id="acct-auth-signed-in-desc"></description>
+        <button label="&acct-auth-disconnect-label;"
+                oncommand="gWeaveAuthenticator.onDisconnect();"/>
+      </vbox>
+      <vbox id="acct-auth-popup-signed-out">
+        <description id="acct-auth-signed-out-desc">&acct-auth-connect-label1;</description>
+        <description>&acct-auth-connect-label2;</description>
+        <button label="Connect" oncommand="gWeaveAuthenticator.onConnect();"/>
+      </vbox>
+    </panel>
+  </popupset>
 
-    <toolbarpalette id="BrowserToolbarPalette">
-      <toolbarbutton id="acct-auth-button" class="toolbarbutton-1"
-                     label="&acct-auth-button-label;" tooltiptext="&acct-auth-button-tooltip;"
-                     observes="acct-auth-state"
-                     oncommand="gWeaveAuthenticator.onButtonCommand(event);"/>
-    </toolbarpalette>
+  <toolbarpalette id="BrowserToolbarPalette">
+    <toolbarbutton id="acct-auth-button" class="toolbarbutton-1"
+                   label="&acct-auth-button-label;" tooltiptext="&acct-auth-button-tooltip;"
+                   observes="acct-auth-state"
+                   oncommand="gWeaveAuthenticator.onButtonCommand(event);"/>
+  </toolbarpalette>
 </overlay>

@@ -55,6 +55,6 @@
     <em:creator>Mozilla Labs Team</em:creator>
     <em:homepageURL>http://labs.mozilla.com/projects/weave/</em:homepageURL>
     @update_url_tag@
-    <em:iconURL>chrome://weave-identity/skin/experiment.png</em:iconURL>
+    <em:iconURL>chrome://weave-identity-common/skin/experiment.png</em:iconURL>
   </Description>      
 </RDF>

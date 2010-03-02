@@ -1,0 +1,23 @@
+/* Toolbar button */
+
+#acct-auth-button,
+#acct-auth-button[state="unknown"],
+#acct-auth-button[state="signed_out"],
+#acct-auth-button[state="signing_in"] {
+    list-style-image: url("chrome://weave-identity/skin/toolbar-buttons.png");
+    -moz-image-region: rect( 24px 24px 48px  0px);
+}
+#acct-auth-button[state="signed_in"] {
+    -moz-image-region: rect( 0px 24px 24px  0px);
+}
+
+toolbar[iconsize="small"] #acct-auth-button,
+toolbar[iconsize="small"] #acct-auth-button[state="unknown"],
+toolbar[iconsize="small"] #acct-auth-button[state="signed_out"],
+toolbar[iconsize="small"] #acct-auth-button[state="signing_in"] {
+    list-style-image: url("chrome://weave-identity/skin/toolbar-buttons-small.png");
+    -moz-image-region: rect( 16px 16px 32px  0px);
+}
+toolbar[iconsize="small"] #acct-auth-button[state="signed_in"] {
+    -moz-image-region: rect( 0px 16px 16px  0px);
+}

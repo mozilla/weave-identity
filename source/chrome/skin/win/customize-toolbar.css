@@ -1,0 +1,6 @@
+/* Customize toolbar sheet - toolbar buttons */
+
+#acct-auth-button {
+    list-style-image: url("chrome://weave-identity/skin/toolbar-buttons.png");
+    -moz-image-region: rect( 0px 24px 24px  0px);
+}
