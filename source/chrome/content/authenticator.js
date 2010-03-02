@@ -51,15 +51,20 @@ let gWeaveAuthenticator = {
 
   get _log() {
     delete this._log;
-    this._log = Log4Moz.repository.getLogger("Authenticator");
-    this._log.level = Log4Moz.Level[WeaveID.Svc.Prefs.get("log.logger.authenticator",
-                                                    "Trace")];
+    this._log = Log4Moz.repository.getLogger("AccountMgrWin");
+    this._log.level = 
+      Log4Moz.Level[WeaveID.Svc.Prefs.get("log.logger.authenticator", "Trace")];
     return this._log;
   },
 
   get _state() {
     delete this._state;
     return this._state = document.getElementById("acct-auth-state");
+  },
+
+  get _navbar() {
+    delete this._navbar;
+    return this._navbar = document.getElementById("nav-bar");
   },
 
   get _button() {
@@ -99,6 +104,9 @@ let gWeaveAuthenticator = {
   // Initialization/Destruction
 
   onLoad: function() {
+    if (!WeaveID.Svc.Prefs.get("toolbar-item-added"))
+      setTimeout(WeaveID.Utils.bind2(this, this.addToolbarItem), 0);
+
     if (WeaveID.Svc.Prefs.get("authenticator.enabled")) {
       gBrowser.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
       this.Observers.add("weaveid-realm-updated", this.onRealmUpdated, this);
@@ -110,6 +118,38 @@ let gWeaveAuthenticator = {
       gBrowser.removeProgressListener(this);
       this.Observers.remove("weaveid-realm-updated", this.onRealmUpdated, this);
     }
+  },
+
+  addToolbarItem: function() {
+    // we only want to add it once
+    if (WeaveID.Svc.Prefs.get("toolbar-item-added"))
+      return;
+
+    let set = this._navbar.currentSet.split(',');
+
+    // don't try to add again if it's already there somehow
+    if (set.indexOf('acct-auth-button') >= 0) {
+      WeaveId.Svc.Prefs.set("toolbar-item-added", true);
+      return;
+    }
+
+    this._log.debug("Adding toolbar item");
+
+    try {
+      let urlbar = set.indexOf('urlbar-container');
+      if (urlbar >= 0) {
+        set.splice(urlbar, 0, 'acct-auth-button');
+      } else {
+        set.push("acct-auth-button");
+      }
+      set = set.join(',');
+      this._navbar.setAttribute('currentset', set);
+      this._navbar.currentSet = set;
+      document.persist('nav-bar', 'currentset');
+    } catch (e) {
+      this._log.error(e);
+    }
+    WeaveID.Svc.Prefs.set("toolbar-item-added", true);
   },
 
   //**************************************************************************//
