@@ -1,0 +1,6 @@
+#!/bin/sh
+
+make clean
+make xpi
+make
+scp dist/xpi/*.xpi dist/stage/update.rdf people.mozilla.com:public_html/account-manager/.
