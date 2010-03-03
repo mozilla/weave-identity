@@ -4,7 +4,7 @@
      xmlns:em="http://www.mozilla.org/2004/em-rdf#">
 
   <Description about="urn:mozilla:install-manifest">
-    <em:id>{5e2f6fce-9590-49c3-946d-6356e68e961f}</em:id>
+    <em:id>@addon_id@</em:id>
     <em:version>@addon_version@</em:version>
     <em:type>2</em:type>
 

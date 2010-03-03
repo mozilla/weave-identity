@@ -41,16 +41,19 @@ stage_dir=$(objdir)/stage
 xpi_dir=$(objdir)/xpi
 
 addon_name := account-manager
-addon_version := 0.0.4
+addon_version := 0.0.5
+addon_id := {5e2f6fce-9590-49c3-946d-6356e68e961f}
+
+update_url := https://people.mozilla.com/~dmills/account-manager/
 
 ifeq ($(release_build),)
   xpi_type := dev
-  update_url := https://people.mozilla.com/~dmills/account-manager/update.rdf
+  update_rdf_url := $(update_url)update.rdf
 else
   xpi_type := rel
 endif
 
-ifeq ($(update_url),)
+ifeq ($(update_rdf_url),)
   update_url_tag :=
 else
   update_url_tag := <em:updateURL>$(update_url)</em:updateURL>
@@ -83,15 +86,19 @@ else
 endif
 
 subst_names := \
+  addon_name \
   addon_version \
+  addon_id \
   buildid \
   buildid_short \
   server_url \
   update_url \
+  update_rdf_url \
   update_url_tag \
   unpacked \
   jar \
-  content_jar
+  content_jar \
+  xpi_name
 export $(subst_names)
 export substitute = perl -pe 's/@([^@]+)@/defined $$$$ENV{$$$$1} ? $$$$ENV{$$$$1} : $$$$&/ge'
 
