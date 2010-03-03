@@ -5,7 +5,7 @@
 #acct-auth-button[state="signed_out"],
 #acct-auth-button[state="signing_in"] {
     list-style-image: url("chrome://weave-identity/skin/toolbar-buttons.png");
-    -moz-image-region: rect( 23px 36px 46px  0px);
+    -moz-image-region: rect( 69px 36px 92px  0px);
 }
 #acct-auth-button[state="signed_in"] {
     -moz-image-region: rect( 0px 36px 23px  0px);
@@ -16,7 +16,7 @@ toolbar[iconsize="small"] #acct-auth-button[state="unknown"],
 toolbar[iconsize="small"] #acct-auth-button[state="signed_out"],
 toolbar[iconsize="small"] #acct-auth-button[state="signing_in"] {
     list-style-image: url("chrome://weave-identity/skin/toolbar-buttons-small.png");
-    -moz-image-region: rect( 23px 36px 46px  0px);
+    -moz-image-region: rect( 69px 36px 92px  0px);
 }
 toolbar[iconsize="small"] #acct-auth-button[state="signed_in"] {
     -moz-image-region: rect( 0px 36px 23px  0px);
