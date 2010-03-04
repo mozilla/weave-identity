@@ -37,8 +37,7 @@
 let EXPORTED_SYMBOLS = ['desc'];
 
 let desc = {
-  domain: "https://www.google.com",
-  realmUri: 'google.com',
+  realmUri: 'https://www.google.com/',
   realmClass: 'SynthRealm',
   matchingUris: [
     'http://www.google.com',

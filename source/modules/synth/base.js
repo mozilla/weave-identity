@@ -54,7 +54,7 @@ SynthRealm.prototype = {
 
   _init: function(descriptor) {
     this._amcd = descriptor.amcd;
-    Realm.prototype._init.apply(this, [descriptor.realmUri, descriptor.domain]);
+    Realm.prototype._init.apply(this, [descriptor.realmUri]);
     this._log = Log4Moz.repository.getLogger("SynthRealm");
     this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
   },
@@ -81,7 +81,7 @@ SynthRealm.prototype = {
 
   _connect_POST: function() {
     let connect = this._profile.connect;
-    let logins = Utils.getLogins(this.domain.noslash);
+    let logins = Utils.getLogins(this.domain);
     let username, password;
     if (logins && logins.length > 0) {
       username = logins[0].username;

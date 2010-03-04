@@ -41,8 +41,7 @@ let EXPORTED_SYMBOLS = ['desc'];
 // AMCD... ;)
 
 let desc = {
-  domain: "https://bugzilla.mozilla.org",
-  realmUri: 'bugzilla.mozilla.org',
+  realmUri: 'https://bugzilla.mozilla.org/',
   realmClass: 'SynthRealm',
   matchingUris: [
     'https://bugzilla.mozilla.org'

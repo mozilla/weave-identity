@@ -42,8 +42,7 @@ let EXPORTED_SYMBOLS = ['desc'];
 // be bothered to try to clean up right now
 
 let desc = {
-  domain: "https://www.getpersonas.com",
-  realmUri: 'getpersonas.com',
+  realmUri: 'https://www.getpersonas.com/',
   realmClass: 'SynthRealm',
   matchingUris: [
     'https://www.getpersonas.com'

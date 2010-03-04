@@ -194,11 +194,10 @@ WeaveIDSvc.prototype = {
           if (this.realms[url])
             return this.realms[url];
 
-          let domain = location.scheme + '://' + location.hostPort;
           if (fakeRealm)
             return this.realms[url] = this._synthRealms.makeRealm(url);
           else
-            return this.realms[url] = new Realm(url, domain);
+            return this.realms[url] = new Realm(url);
         }
 
         return null; // this site is not supported

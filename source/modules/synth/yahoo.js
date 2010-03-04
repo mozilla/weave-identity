@@ -54,8 +54,7 @@ this['SynthRealm'] = sym.SynthRealm;
 // random manner.  So the scrape expression uses a class which I
 // presume will be more stable (?)
 let desc = {
-  domain: "https://login.yahoo.com",
-  realmUri: 'yahoo.com',
+  realmUri: 'https://login.yahoo.com/',
   realmClass: 'YahooSynthRealm',
   matchingUris: [
     'http://www.yahoo.com',
@@ -104,7 +103,7 @@ YahooSynthRealm.prototype = {
   _connect_POST: function() {
     try {
     let connect = this._profile.connect;
-    let logins = Utils.getLogins(this.domain.noslash);
+    let logins = Utils.getLogins(this.domain);
     let username, password;
     if (logins && logins.length > 0) {
       username = logins[0].username;

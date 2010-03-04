@@ -37,8 +37,7 @@
 let EXPORTED_SYMBOLS = ['desc'];
 
 let desc = {
-  domain: "https://addons.mozilla.org",
-  realmUri: 'addons.mozilla.org',
+  realmUri: 'https://addons.mozilla.org/',
   realmClass: 'SynthRealm',
   matchingUris: [
     'https://addons.mozilla.org'

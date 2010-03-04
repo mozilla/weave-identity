@@ -74,19 +74,24 @@ Realm.prototype = {
   SIGNING_OUT: "signing_out",
   SIGNED_OUT: "signed_out",
 
+  get realmUrl() {
+    return this._realmUrl;
+  },
+  set realmUrl(value) {
+    this._realmUrl = new String(value);
+    this._realmUrl.obj = Utils.makeURL(value);
+  },
+
   get domain() {
-    if (this._domain)
-      return this._domain;
-
-    let domain = new String(this._domainUrl);
-    domain.obj = Utils.makeURL(domain);
-    if (domain[domain.length - 1] == '/')
-      domain.noslash = domain.slice(0, domain.length - 1);
-    else
-      domain.noslash = this._domainUrl;
-
-    // cache it for next time
-    return this._domain = domain;
+    if (!this._domain)
+      this.domain = this.realmUrl.obj;
+    return this._domain;
+  },
+  set domain(value) {
+    if (typeof(value) == 'string')
+      value = Utils.makeURL(value);
+    this._domain = new String(value.scheme + '://' + value.hostPort);
+    this._domain.obj = Utils.makeURL(this._domain);
   },
 
   _init: function(realmUrl, domainUrl) {
@@ -95,7 +100,7 @@ Realm.prototype = {
     if (realmUrl)
       this.realmUrl = realmUrl;
     if (domainUrl)
-      this._domainUrl = domainUrl;
+      this.domainUrl = domainUrl;
     this.curId = "";
     this._log = Log4Moz.repository.getLogger(this._logName);
     this._log.level = Log4Moz.Level[Svc.Prefs.get(this._logPref)];
@@ -262,7 +267,7 @@ Realm.prototype = {
   },
   _connect_POST: function() {
     let connect = this._profile.connect.POST;
-    let logins = Utils.getLogins(this.domain.noslash);
+    let logins = Utils.getLogins(this.domain);
     let username, password;
     if (logins && logins.length > 0) {
       username = logins[0].username;
