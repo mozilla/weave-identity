@@ -42,36 +42,35 @@ let EXPORTED_SYMBOLS = ['desc'];
 // be bothered to try to clean up right now
 
 let desc = {
+  domain: "https://www.getpersonas.com",
   realmUri: 'getpersonas.com',
   realmClass: 'SynthRealm',
   matchingUris: [
     'https://www.getpersonas.com'
   ],
   amcd: {
-    "_domain": "https://www.getpersonas.com",
-    "methods": {
-      "_scrape": {
+    _synth: {
+      scrape: {
         username: "//a[@href='http://www.getpersonas.com/en-US/profile']/../text()[position()=1]"
-      },
+      }
+    },
+    "methods-username-password-form": {
       "connect": {
-        "POST": {
-          "path":"/en-US/signin",
-          "params": {
-            "username":"login_user",
-            "password":"login_pass",
-            "_extra":"action=login"
-          }
+        method: "POST",
+        "path":"/en-US/signin",
+        "params": {
+          "username":"login_user",
+          "password":"login_pass",
+          "_extra":"action=login"
         }
       },
       "disconnect": {
-        "POST": {
-          "path":"/en-US/signin?action=signout"
-        }
+        method: "POST",
+        "path":"/en-US/signin?action=signout"
       },
       "query": {
-        "GET": {
-          "path":"/"
-        }
+        method: "GET",
+        "path":"/"
       }
     }
   }

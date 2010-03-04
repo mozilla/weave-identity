@@ -54,21 +54,24 @@ SynthRealm.prototype = {
 
   _init: function(descriptor) {
     this._amcd = descriptor.amcd;
-    Realm.prototype._init.apply(this, [descriptor.realmUri, this._amcd._domain]);
+    Realm.prototype._init.apply(this, [descriptor.realmUri, descriptor.domain]);
     this._log = Log4Moz.repository.getLogger("SynthRealm");
     this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
   },
 
   refreshAmcd: function() {
     this._log.trace("refreshAmcd");
-    this.amcdState = this.AMCD_OK;
+    this.amcdState = this.AMCD_JSON_OK;
+    this._profile = this._chooseProfile();
+    if (this._profile)
+      this.amcdState = this.AMCD_OK;
   },
 
   updateStatus: function(progress, request, location) {
     if (progress.isLoadingDocument)
       return; // need the full doc to scrape it
     let user = Utils.xpathText(progress.DOMWindow.document,
-                               this._amcd.methods._scrape.username);
+                               this._amcd._synth.scrape.username);
     this._log.trace("Scraped username: " + user);
     if (user)
       this.statusChange('active; name="' + user + '"');
@@ -77,7 +80,7 @@ SynthRealm.prototype = {
   },
 
   _connect_POST: function() {
-    let connect = this._amcd.methods.connect.POST;
+    let connect = this._profile.connect;
     let logins = Utils.getLogins(this.domain.noslash);
     let username, password;
     if (logins && logins.length > 0) {
@@ -90,12 +93,14 @@ SynthRealm.prototype = {
       connect.params.password + '=' + encodeURIComponent(password);
     if (connect.params._extra)
       params += '&' + connect.params._extra;
-    if (connect._challenge) {
-      let uri = this.domain.obj.resolve(connect._challenge.path);
+
+    let synth = this._amcd._synth;
+    if (synth['connect-challenge']) {
+      let uri = this.domain.obj.resolve(synth['connect-challenge'].path);
       let dom = new Resource(uri).get().dom;
-      let str = Utils.xpathText(dom, connect._challenge.xpath);
+      let str = Utils.xpathText(dom, synth['connect-challenge'].xpath);
       if (str)
-        params += '&' + connect._challenge.param + '=' + encodeURIComponent(str);
+        params += '&' + synth['connect-challenge'].param + '=' + encodeURIComponent(str);
     }
 
     let res = new Resource(this.domain.obj.resolve(connect.path));

@@ -37,6 +37,7 @@
 let EXPORTED_SYMBOLS = ['desc'];
 
 let desc = {
+  domain: "https://www.google.com",
   realmUri: 'google.com',
   realmClass: 'SynthRealm',
   matchingUris: [
@@ -46,34 +47,32 @@ let desc = {
     'https://docs.google.com'
   ],
   amcd: {
-    "_domain": "https://www.google.com",
-    "methods": {
-      "_scrape": {
+    "_synth": {
+      "scrape": {
         username: "id('guser')/nobr/b[position()=1]"
       },
+      "connect-challenge": {
+        path:"/accounts/Login",
+        param:"GALX",
+        xpath:"id('gaia_loginform')//input[@name='GALX']/@value"
+      }
+    },
+    "methods-username-password-form": {
       "connect": {
-        "POST": {
-          "path":"/accounts/LoginAuth",
-          "params": {
-            "username":"Email",
-            "password":"Passwd"
-          },
-          "_challenge": {
-            path:"/accounts/Login",
-            param:"GALX",
-            xpath:"id('gaia_loginform')//input[@name='GALX']/@value"
-          }
+        method: "POST",
+        "path":"/accounts/LoginAuth",
+        "params": {
+          "username":"Email",
+          "password":"Passwd"
         }
       },
       "disconnect": {
-        "POST": {
-          "path":"/accounts/Logout"
-        }
+        method: "POST",
+        "path":"/accounts/Logout"
       },
       "query": {
-        "GET": {
-          "path":"/"
-        }
+        method: "GET",
+        "path":"/"
       }
     }
   }

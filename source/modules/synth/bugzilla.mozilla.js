@@ -41,35 +41,34 @@ let EXPORTED_SYMBOLS = ['desc'];
 // AMCD... ;)
 
 let desc = {
+  domain: "https://bugzilla.mozilla.org",
   realmUri: 'bugzilla.mozilla.org',
   realmClass: 'SynthRealm',
   matchingUris: [
     'https://bugzilla.mozilla.org'
   ],
   amcd: {
-    "_domain": "https://bugzilla.mozilla.org",
-    "methods": {
-      "_scrape": {
+    _synth: {
+      scrape: {
         username: "//a[@href='index.cgi?logout=1']/../child::text()[position()=last()]"
-      },
+      }
+    },
+    "methods-username-password-form": {
       "connect": {
-        "POST": {
-          "path":"/index.cgi",
-          "params": {
-            "username":"Bugzilla_login",
-            "password":"Bugzilla_password"
-          }
+        method: "POST",
+        "path":"/index.cgi",
+        "params": {
+          "username":"Bugzilla_login",
+          "password":"Bugzilla_password"
         }
       },
       "disconnect": {
-        "POST": {
-          "path":"/index.cgi?logout=1"
-        }
+        method: "POST",
+        "path":"/index.cgi?logout=1"
       },
       "query": {
-        "GET": {
-          "path":"/"
-        }
+        method: "GET",
+        "path":"/"
       }
     }
   }

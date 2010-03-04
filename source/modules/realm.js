@@ -62,6 +62,7 @@ Realm.prototype = {
   amcdState: null,
   AMCD_NOT_SUPPORTED: "amcd_not_supported",
   AMCD_DOWNLOADING: "amcd_downloading",
+  AMCD_JSON_OK: "amcd_json_ok",
   AMCD_OK: "amcd_ok",
   AMCD_DOWNLOAD_ERROR: "amcd_download_error",
   AMCD_PARSE_ERROR: "amcd_parse_error",
@@ -73,7 +74,6 @@ Realm.prototype = {
   SIGNING_OUT: "signing_out",
   SIGNED_OUT: "signed_out",
 
-  // FIXME: don't get the domain from the AMCD
   get domain() {
     if (this._domain)
       return this._domain;
@@ -110,7 +110,11 @@ Realm.prototype = {
     if (ret.success) {
       try {
         this._amcd = ret.obj;
-        this.amcdState = this.AMCD_OK;
+        this.amcdState = this.AMCD_JSON_OK;
+
+        this._profile = this._chooseProfile();
+        if (this._profile)
+          this.amcdState = this.AMCD_OK;
 
         if (this.signinState == this.STATE_UNKNOWN)
           this.querySigninState();
@@ -122,6 +126,27 @@ Realm.prototype = {
       this.amcdState = this.AMCD_DOWNLOAD_ERROR;
       this._log.warn("could not download amcd: " + this.realmUrl + "\n"); // xxx
     }
+  },
+
+  _chooseProfile: function() {
+    if (this.amcdState != this.AMCD_JSON_OK)
+      this._log.warn("Cannot access AMCD, not parsed (" + this.amcdState + ")");
+
+    this._log.debug("Choosing matching AMCD profile");
+
+    let profiles = [];
+    for (let k in this._amcd) {
+      if (k.indexOf('methods-') == 0)
+      profiles.push(k.slice(8));
+    }
+
+    // we only support the username-password-form profile right now
+    if (profiles.indexOf('username-password-form') < 0)
+      return null;
+
+    this._log.debug("Profile chosen: username-password-form");
+
+    return this._amcd['methods-username-password-form'];
   },
 
   _parseArgs: function(header) {
@@ -195,21 +220,22 @@ Realm.prototype = {
     }
   },
 
+  _checkAmcd: function() {
+    if (this.amcdState != this.AMCD_OK) {
+      this._log.error("Cannot execute method, no profile. AMCD state: " + this.amcdState);
+      return false;
+    }
+    return true;
+  },
+
   querySigninState: function() {
     this._log.trace('Querying signin state');
 
-    error: {
-      if (this.amcdState != this.AMCD_OK)
-        this._log.warn("Attempted to query state but AMCD not parsed (" + this.amcdState + ")");
-      else if (!this._amcd.methods || !this._amcd.methods.query)
-        this._log.warn("Query method not supported AMCD");
-      else
-        break error;
+    if (!this._checkAmcd())
       return;
-    }
 
-    if (this._amcd.methods.query['GET']) {
-      let query = this._amcd.methods.query.GET;
+    let query = this._profile.query;
+    if (query && query.method == 'GET') {
       let res = new Resource(this.domain.obj.resolve(query.path));
       this.statusChange(res.get().headers['X-Account-Management-Status']);
     } else
@@ -219,15 +245,8 @@ Realm.prototype = {
   connect: function() {
     this._log.trace('Connecting');
 
-    error: {
-      if (this.amcdState != this.AMCD_OK)
-        this._log.warn("Attempted to connect but AMCD not parsed");
-      else if (!this._amcd.methods || !this._amcd.methods.connect)
-        this._log.warn("Connect method not supported in AMCD");
-      else
-        break error;
+    if (!this._checkAmcd())
       return;
-    }
 
     // check if we're already trying to sign in
     // fixme: doesn't time out or check for errors in any way
@@ -235,14 +254,14 @@ Realm.prototype = {
       return;
     this.signinState = this.SIGNING_IN;
 
-    if (this._amcd.methods.connect['POST']) {
+    if (this._profile.connect && this._profile.connect.method == 'POST') {
       this._connect_POST();
-
-    } else
+    } else {
       this._log.warn('No supported methods in common for connect');
+    }
   },
   _connect_POST: function() {
-    let connect = this._amcd.methods.connect.POST;
+    let connect = this._profile.connect.POST;
     let logins = Utils.getLogins(this.domain.noslash);
     let username, password;
     if (logins && logins.length > 0) {
@@ -262,15 +281,8 @@ Realm.prototype = {
   disconnect: function() {
     this._log.trace('Disconnecting');
 
-    error: {
-      if (this.amcdState != this.AMCD_OK)
-        this._log.warn("Attempted to connect but AMCD not parsed");
-      else if (!this._amcd.methods || !this._amcd.methods.disconnect)
-        this._log.warn("Disconnect method not supported in AMCD");
-      else
-        break error;
+    if (!this._checkAmcd())
       return;
-    }
 
     // check if we're already trying to sign out
     // fixme: doesn't time out or check for errors in any way
@@ -278,9 +290,9 @@ Realm.prototype = {
       return;
     this.signinState = this.SIGNING_OUT;
 
-    if (this._amcd.methods.disconnect['POST']) {
-      let disconnect = this._amcd.methods.disconnect.POST;
-      let res = new Resource(this.domain.obj.resolve(disconnect.path));
+    let d = this._profile.disconnect;
+    if (d && d.method == 'POST') {
+      let res = new Resource(this.domain.obj.resolve(d.path));
       this.statusChange(res.get().headers['X-Account-Management-Status']);
     } else
       this._log.warn('No supported methods in common for disconnect');

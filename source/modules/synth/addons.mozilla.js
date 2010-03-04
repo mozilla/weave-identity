@@ -37,35 +37,34 @@
 let EXPORTED_SYMBOLS = ['desc'];
 
 let desc = {
+  domain: "https://addons.mozilla.org",
   realmUri: 'addons.mozilla.org',
   realmClass: 'SynthRealm',
   matchingUris: [
     'https://addons.mozilla.org'
   ],
   amcd: {
-    "_domain": "https://addons.mozilla.org",
-    "methods": {
-      "_scrape": {
+    _synth: {
+      scrape: {
         username: "//*[@class='greeting']"
-      },
+      }
+    },
+    "methods-username-password-form": {
       "connect": {
-        "POST": {
-          "path":"/en-US/firefox/users/login",
-          "params": {
-            "username":"data[Login][email]",
-            "password":"data[Login][password]"
-          }
+        method: "POST",
+        "path":"/en-US/firefox/users/login",
+        "params": {
+          "username":"data[Login][email]",
+          "password":"data[Login][password]"
         }
       },
       "disconnect": {
-        "POST": {
-          "path":"/en-US/firefox/users/logout"
-        }
+        method: "POST",
+        "path":"/en-US/firefox/users/logout"
       },
       "query": {
-        "GET": {
-          "path":"/"
-        }
+        method: "GET",
+        "path":"/"
       }
     }
   }

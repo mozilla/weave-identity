@@ -54,6 +54,7 @@ this['SynthRealm'] = sym.SynthRealm;
 // random manner.  So the scrape expression uses a class which I
 // presume will be more stable (?)
 let desc = {
+  domain: "https://login.yahoo.com",
   realmUri: 'yahoo.com',
   realmClass: 'YahooSynthRealm',
   matchingUris: [
@@ -61,34 +62,32 @@ let desc = {
     'https://www.yahoo.com'
   ],
   amcd: {
-    "_domain": "https://login.yahoo.com",
-    "methods": {
-      "_scrape": {
+    "_synth": {
+      "scrape": {
         username: "//ul[contains(@class,'tuc-dropdown')]/li[position()=last()]/strong"
       },
+      "connect-challenge": {
+        path:"/config/login",
+        param: ".challenge",
+        xpath:"//form[@name='login_form']/input[@name='.challenge']/@value"
+      }
+    },
+    "methods-username-password-form": {
       "connect": {
-        "POST": {
-          "path":"/config/login",
-          "params": {
-            "username":"login",
-            "password":"passwd"
-          },
-          "_challenge": {
-            path:"/config/login",
-            param: ".challenge",
-            xpath:"//form[@name='login_form']/input[@name='.challenge']/@value"
-          }
+        method: "POST",
+        "path":"/config/login",
+        "params": {
+          "username":"login",
+          "password":"passwd"
         }
       },
       "disconnect": {
-        "POST": {
-          "path":"/config/login?logout=1"
-        }
+        method: "POST",
+        "path":"/config/login?logout=1"
       },
       "query": {
-        "GET": {
-          "path":"/"
-        }
+        method: "GET",
+        "path":"/"
       }
     }
   }
@@ -104,7 +103,7 @@ YahooSynthRealm.prototype = {
 
   _connect_POST: function() {
     try {
-    let connect = this._amcd.methods.connect.POST;
+    let connect = this._profile.connect;
     let logins = Utils.getLogins(this.domain.noslash);
     let username, password;
     if (logins && logins.length > 0) {
@@ -115,14 +114,15 @@ YahooSynthRealm.prototype = {
     let params = 
       connect.params.username + '=' + encodeURIComponent(username);
 
-    if (connect._challenge) {
-      let uri = this.domain.obj.resolve(connect._challenge.path);
+    let synth = this._amcd._synth;
+    if (synth['connect-challenge']) {
+      let uri = this.domain.obj.resolve(synth['connect-challenge'].path);
       let dom = new Resource(uri).get().dom;
-      let str = Utils.xpathText(dom, connect._challenge.xpath);
+      let str = Utils.xpathText(dom, synth['connect-challenge'].xpath);
       if (str) {
         // fixme - see yahoo's login js
         params += '&' + connect.params.password + '=' + encodeURIComponent(password);
-        params += '&' + connect._challenge.param + '=' + encodeURIComponent(str);
+        params += '&' + synth['connect-challenge'].param + '=' + encodeURIComponent(str);
       }
     } else {
       params += '&' + connect.params.password + '=' + encodeURIComponent(password);      
