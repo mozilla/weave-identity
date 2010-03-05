@@ -34,37 +34,32 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-let EXPORTED_SYMBOLS = ['desc'];
+let EXPORTED_SYMBOLS = ['FacebookSynthRealm'];
 
-let desc = {
-  realmUri: 'https://addons.mozilla.org/',
-  realmClass: 'SynthRealm',
-  matchingUris: [
-    'https://addons.mozilla.org'
-  ],
-  amcd: {
-    _synth: {
-      scrape: {
-        username: "//*[@class='greeting']"
-      }
-    },
-    "methods-username-password-form": {
-      "connect": {
-        method: "POST",
-        "path":"/en-US/firefox/users/login",
-        "params": {
-          "username":"data[Login][email]",
-          "password":"data[Login][password]"
-        }
-      },
-      "disconnect": {
-        method: "POST",
-        "path":"/en-US/firefox/users/logout"
-      },
-      "query": {
-        method: "GET",
-        "path":"/"
-      }
-    }
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cr = Components.results;
+const Cu = Components.utils;
+
+Cu.import("resource://weave-identity/ext/log4moz.js");
+Cu.import("resource://weave-identity/ext/resource.js");
+Cu.import("resource://weave-identity/util.js");
+Cu.import("resource://weave-identity/synth/realms/base.js");
+
+function FacebookSynthRealm(descriptor) {
+  this._init(descriptor);
+  this._log = Log4Moz.repository.getLogger("FacebookSynthRealm");
+  this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
+};
+FacebookSynthRealm.prototype = {
+  __proto__: SynthRealm.prototype,
+
+  _disconnect_POST: function() {
+    let challenge = this._amcd._synth['disconnect-path'];
+    let challengeUri = this.domain.obj.resolve(challenge.path);
+    let dom = new Resource(challengeUri).get().dom;
+    let disconnectUri = Utils.xpathText(dom, challenge.xpath);
+    let res = new Resource(this.domain.obj.resolve(disconnectUri));
+    this.statusChange(res.get().headers['X-Account-Management-Status']);
   }
 };

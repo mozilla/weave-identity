@@ -34,26 +34,13 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-let EXPORTED_SYMBOLS = ['desc', 'realm', 'YahooSynthRealm'];
-
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
-const Cu = Components.utils;
-
-Cu.import("resource://weave-identity/ext/log4moz.js");
-Cu.import("resource://weave-identity/ext/resource.js");
-Cu.import("resource://weave-identity/util.js");
-
-// base.js exports 'realm', so we can't import it into our global scope
-let sym = {};
-Cu.import("resource://weave-identity/synth/base.js", sym);
-this['SynthRealm'] = sym.SynthRealm;
+let EXPORTED_SYMBOLS = ['desc'];
 
 // note: Yahoo! changes element IDs on their pages in a seemingly
 // random manner.  So the scrape expression uses a class which I
 // presume will be more stable (?)
 let desc = {
+  name: 'Yahoo!',
   realmUri: 'https://login.yahoo.com/',
   realmClass: 'YahooSynthRealm',
   matchingUris: [
@@ -91,49 +78,3 @@ let desc = {
     }
   }
 };
-
-function YahooSynthRealm(descriptor) {
-  this._init(descriptor);
-  this._log = Log4Moz.repository.getLogger("YahooSynthRealm");
-  this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
-};
-YahooSynthRealm.prototype = {
-  __proto__: SynthRealm.prototype,
-
-  _connect_POST: function() {
-    try {
-    let connect = this._profile.connect;
-    let logins = Utils.getLogins(this.domain);
-    let username, password;
-    if (logins && logins.length > 0) {
-      username = logins[0].username;
-      password = logins[0].password;
-    }
-
-    let params = 
-      connect.params.username + '=' + encodeURIComponent(username);
-
-    let synth = this._amcd._synth;
-    if (synth['connect-challenge']) {
-      let uri = this.domain.obj.resolve(synth['connect-challenge'].path);
-      let dom = new Resource(uri).get().dom;
-      let str = Utils.xpathText(dom, synth['connect-challenge'].xpath);
-      if (str) {
-        // fixme - see yahoo's login js
-        params += '&' + connect.params.password + '=' + encodeURIComponent(password);
-        params += '&' + synth['connect-challenge'].param + '=' + encodeURIComponent(str);
-      }
-    } else {
-      params += '&' + connect.params.password + '=' + encodeURIComponent(password);      
-    }
-
-    let res = new Resource(this.domain.obj.resolve(connect.path));
-    res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-    let ret = res.post(params);
-    this.statusChange(ret.headers['X-Account-Management-Status']);
-    } catch (e) {
-      this._log.error(e);
-    }
-  }
-};
-let realm = YahooSynthRealm;

@@ -37,37 +37,35 @@
 let EXPORTED_SYMBOLS = ['desc'];
 
 let desc = {
-  realmUri: 'https://www.google.com/',
-  realmClass: 'SynthRealm',
+  name: 'Facebook',
+  realmUri: 'https://login.facebook.com/',
+  realmClass: 'FacebookSynthRealm',
   matchingUris: [
-    'http://www.google.com',
-    'https://www.google.com',
-    'http://docs.google.com',
-    'https://docs.google.com'
+    'http://www.facebook.com/',
+    'https://www.facebook.com/',
+    'https://login.facebook.com/'
   ],
   amcd: {
     "_synth": {
       "scrape": {
-        username: "id('guser')/nobr/b[position()=1]"
+        username: "id('navAccountName')"
       },
-      "connect-challenge": {
-        path:"/accounts/Login",
-        param:"GALX",
-        xpath:"id('gaia_loginform')//input[@name='GALX']/@value"
+      "disconnect-path": {
+        path: "/",
+        xpath: "id('navAccount')/ul/li[position()=last()]/a/@href"
       }
     },
     "methods-username-password-form": {
       "connect": {
         method: "POST",
-        "path":"/accounts/LoginAuth",
+        "path":"/login.php",
         "params": {
-          "username":"Email",
-          "password":"Passwd"
+          "username":"email",
+          "password":"pass"
         }
       },
       "disconnect": {
-        method: "POST",
-        "path":"/accounts/Logout"
+        method: "POST"
       },
       "query": {
         method: "GET",

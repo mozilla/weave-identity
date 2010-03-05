@@ -48,9 +48,6 @@ Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
 Cu.import("resource://weave-identity/realm.js");
 
-const BUNDLED_REALMS = ['base', 'google', 'yahoo',
-                        'bugzilla.mozilla', 'addons.mozilla', 'getpersonas'];
-
 function SynthRealmManager() {
   this._log = Log4Moz.repository.getLogger("SynthRealmManager");
   this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
@@ -59,30 +56,69 @@ function SynthRealmManager() {
   this._realms = {};
 
   // auto-register bundled synth realms & descriptors
-  for each (let res in BUNDLED_REALMS) {
-    let sym = {};
-    try {
-      Cu.import("resource://weave-identity/synth/" + res + ".js", sym);
-    } catch (e) {
-      this._log.error("Could not load synth/" + res + ".js: " + e);
-    }
-    if (sym.desc)
-      this.registerDescriptor(sym.desc);
-    if (sym.realm)
-      this.registerRealm(sym.realm);
-  }
+  this._registerBundledRealms();
+  this._registerBundledDescriptors();
 
   // let others know the manager has started, so they can register with it now
   Observers.notify("weaveid-synth-manager-start");
 }
 SynthRealmManager.prototype = {
+  // FIXME: this slows down startup time, we need to phase this out
+  // with some other solution (ideally sites will just support the
+  // AMCD)
+  _registerBundledRealms: function() {
+    let dir = Utils.makeURI("resource://weave-identity/synth/realms");
+    dir.QueryInterface(Ci.nsIFileURL);
+    dir = dir.file;
+  
+    let entries = dir.directoryEntries;
+    let array = [];
+    while (entries.hasMoreElements()) {
+      let entry = entries.getNext();
+      entry.QueryInterface(Ci.nsIFile);
+      try {
+        let sym = {};
+        Cu.import("resource://weave-identity/synth/realms/" + entry.leafName, sym);
+        for (let realm in sym) {
+          this.registerRealm(sym[realm]);
+        }
+      } catch (e) {
+        this._log.error("Could not load synth/" + entry.leafName + e);
+      }
+    }
+  },
+
+  _registerBundledDescriptors: function() {
+    let dir = Utils.makeURI("resource://weave-identity/synth/desc");
+    dir.QueryInterface(Ci.nsIFileURL);
+    dir = dir.file;
+  
+    let entries = dir.directoryEntries;
+    let array = [];
+    while (entries.hasMoreElements()) {
+      let entry = entries.getNext();
+      entry.QueryInterface(Ci.nsIFile);
+      try {
+        let sym = {};
+        Cu.import("resource://weave-identity/synth/desc/" + entry.leafName, sym);
+        for (let desc in sym) {
+          this.registerDescriptor(sym[desc]);
+        }
+      } catch (e) {
+        this._log.error("Could not load synth/" + entry.leafName + e);
+      }
+    }
+  },
+
   registerDescriptor: function(desc) {
     // FIXME: check overwrite and warn (?)
+    this._log.debug("Registering site descriptor: " + desc.name);
     this._desc[desc.realmUri] = desc;
   },
 
   registerRealm: function(realm) {
     // FIXME: check overwrite and warn (?)
+    this._log.debug("Registering SynthRealm: " + realm.name);
     this._realms[realm.name] = realm;
   },
 

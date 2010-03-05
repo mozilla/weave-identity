@@ -36,34 +36,37 @@
 
 let EXPORTED_SYMBOLS = ['desc'];
 
-// note: scraped usernames end up with some leading whitespace,
-// bugzilla should make it easier to scrape them (or just support the
-// AMCD... ;)
+// scrape note: I didn't use id('account') because it's present when
+// logged out as well
+// note 2: there is extra crap around the scraped username that I can't
+// be bothered to try to clean up right now
 
 let desc = {
-  realmUri: 'https://bugzilla.mozilla.org/',
+  name: 'GetPersonas',
+  realmUri: 'https://www.getpersonas.com/',
   realmClass: 'SynthRealm',
   matchingUris: [
-    'https://bugzilla.mozilla.org'
+    'https://www.getpersonas.com'
   ],
   amcd: {
     _synth: {
       scrape: {
-        username: "//a[@href='index.cgi?logout=1']/../child::text()[position()=last()]"
+        username: "//a[@href='http://www.getpersonas.com/en-US/profile']/../text()[position()=1]"
       }
     },
     "methods-username-password-form": {
       "connect": {
         method: "POST",
-        "path":"/index.cgi",
+        "path":"/en-US/signin",
         "params": {
-          "username":"Bugzilla_login",
-          "password":"Bugzilla_password"
+          "username":"login_user",
+          "password":"login_pass",
+          "_extra":"action=login"
         }
       },
       "disconnect": {
         method: "POST",
-        "path":"/index.cgi?logout=1"
+        "path":"/en-US/signin?action=signout"
       },
       "query": {
         method: "GET",

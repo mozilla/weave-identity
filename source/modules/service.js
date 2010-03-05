@@ -52,7 +52,7 @@ Cu.import("resource://weave-identity/ext/Cache.js");
 Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
 Cu.import("resource://weave-identity/realm.js");
-Cu.import("resource://weave-identity/synthrealm.js");
+Cu.import("resource://weave-identity/synthmanager.js");
 
 // for export
 let WeaveID = {};

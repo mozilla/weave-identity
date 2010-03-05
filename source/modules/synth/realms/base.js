@@ -34,7 +34,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-let EXPORTED_SYMBOLS = ['realm', 'SynthRealm'];
+let EXPORTED_SYMBOLS = ['SynthRealm'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -91,8 +91,11 @@ SynthRealm.prototype = {
     let params = 
       connect.params.username + '=' + encodeURIComponent(username) + '&' +
       connect.params.password + '=' + encodeURIComponent(password);
-    if (connect.params._extra)
-      params += '&' + connect.params._extra;
+    if (connect.params._extra) {
+      for each (let p in connect.params._extra) {
+        params += '&' + p + "=" + encodeURIComponent(connect.params._extra[p]);
+      }
+    }
 
     let synth = this._amcd._synth;
     if (synth['connect-challenge']) {
@@ -101,12 +104,19 @@ SynthRealm.prototype = {
       let str = Utils.xpathText(dom, synth['connect-challenge'].xpath);
       if (str)
         params += '&' + synth['connect-challenge'].param + '=' + encodeURIComponent(str);
+      if (synth['connect-challenge'].xpath2) {
+        let str2 = Utils.xpathText(dom, synth['connect-challenge'].xpath2);
+        if (str2)
+          params += '&' + synth['connect-challenge'].param2 + '=' + encodeURIComponent(str2);
+      }
     }
 
     let res = new Resource(this.domain.obj.resolve(connect.path));
     res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     let ret = res.post(params);
     this.statusChange(ret.headers['X-Account-Management-Status']);
+
+    let res2 = new Resource(connect.params._extra.continue);
+    res2.get();
   }
 };
-let realm = SynthRealm; // so we can export both SynthRealm and realm

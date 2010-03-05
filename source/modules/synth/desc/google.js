@@ -36,36 +36,38 @@
 
 let EXPORTED_SYMBOLS = ['desc'];
 
-// scrape note: I didn't use id('account') because it's present when
-// logged out as well
-// note 2: there is extra crap around the scraped username that I can't
-// be bothered to try to clean up right now
-
 let desc = {
-  realmUri: 'https://www.getpersonas.com/',
+  name: 'Google',
+  realmUri: 'https://www.google.com/',
   realmClass: 'SynthRealm',
   matchingUris: [
-    'https://www.getpersonas.com'
+    'http://www.google.com',
+    'https://www.google.com',
+    'http://docs.google.com'
   ],
   amcd: {
-    _synth: {
-      scrape: {
-        username: "//a[@href='http://www.getpersonas.com/en-US/profile']/../text()[position()=1]"
+    "_synth": {
+      "scrape": {
+        username: "id('guser')/nobr/b[position()=1]"
+      },
+      "connect-challenge": {
+        path:"/accounts/Login",
+        param:"GALX",
+        xpath:"id('gaia_loginform')//input[@name='GALX']/@value"
       }
     },
     "methods-username-password-form": {
       "connect": {
         method: "POST",
-        "path":"/en-US/signin",
+        "path":"/accounts/LoginAuth",
         "params": {
-          "username":"login_user",
-          "password":"login_pass",
-          "_extra":"action=login"
+          "username":"Email",
+          "password":"Passwd"
         }
       },
       "disconnect": {
         method: "POST",
-        "path":"/en-US/signin?action=signout"
+        "path":"/accounts/Logout"
       },
       "query": {
         method: "GET",

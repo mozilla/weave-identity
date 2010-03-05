@@ -41,7 +41,7 @@ stage_dir=$(objdir)/stage
 xpi_dir=$(objdir)/xpi
 
 addon_name := account-manager
-addon_version := 0.0.7
+addon_version := 0.0.8
 addon_id := {5e2f6fce-9590-49c3-946d-6356e68e961f}
 
 update_url := https://people.mozilla.com/~dmills/account-manager/

@@ -295,12 +295,16 @@ Realm.prototype = {
       return;
     this.signinState = this.SIGNING_OUT;
 
-    let d = this._profile.disconnect;
-    if (d && d.method == 'POST') {
-      let res = new Resource(this.domain.obj.resolve(d.path));
-      this.statusChange(res.get().headers['X-Account-Management-Status']);
+    if (this._profile.disconnect &&
+        this._profile.disconnect.method == 'POST') {
+      this._disconnect_POST();
     } else
       this._log.warn('No supported methods in common for disconnect');
+  },
+  _disconnect_POST: function() {
+    let disconnect = this._profile.disconnect;
+    let res = new Resource(this.domain.obj.resolve(disconnect.path));
+    this.statusChange(res.get().headers['X-Account-Management-Status']);
   }
 };
 Realm.__proto__ = Realm.prototype; // So that Realm.STATE_* work
