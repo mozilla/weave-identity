@@ -56,22 +56,24 @@ let desc = {
         xpath:"id('gaia_loginform')//input[@name='GALX']/@value"
       }
     },
-    "methods-username-password-form": {
-      "connect": {
-        method: "POST",
-        "path":"/accounts/LoginAuth",
-        "params": {
-          "username":"Email",
-          "password":"Passwd"
+    methods: {
+      "username-password-form": {
+        "connect": {
+          method: "POST",
+          "path":"/accounts/LoginAuth",
+          "params": {
+            "username":"Email",
+            "password":"Passwd"
+          }
+        },
+        "disconnect": {
+          method: "POST",
+          "path":"/accounts/Logout"
+        },
+        "query": {
+          method: "GET",
+          "path":"/"
         }
-      },
-      "disconnect": {
-        method: "POST",
-        "path":"/accounts/Logout"
-      },
-      "query": {
-        method: "GET",
-        "path":"/"
       }
     }
   }

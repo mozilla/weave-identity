@@ -55,21 +55,23 @@ let desc = {
         xpath: "id('navAccount')/ul/li[position()=last()]/a/@href"
       }
     },
-    "methods-username-password-form": {
-      "connect": {
-        method: "POST",
-        "path":"/login.php",
-        "params": {
-          "username":"email",
-          "password":"pass"
+    methods: {
+      "username-password-form": {
+        "connect": {
+          method: "POST",
+          "path":"/login.php",
+          "params": {
+            "username":"email",
+            "password":"pass"
+          }
+        },
+        "disconnect": {
+          method: "POST"
+        },
+        "query": {
+          method: "GET",
+          "path":"/"
         }
-      },
-      "disconnect": {
-        method: "POST"
-      },
-      "query": {
-        method: "GET",
-        "path":"/"
       }
     }
   }

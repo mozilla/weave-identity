@@ -49,22 +49,24 @@ let desc = {
         username: "//*[@class='greeting']"
       }
     },
-    "methods-username-password-form": {
-      "connect": {
-        method: "POST",
-        "path":"/en-US/firefox/users/login",
-        "params": {
-          "username":"data[Login][email]",
-          "password":"data[Login][password]"
+    methods: {
+      "username-password-form": {
+        "connect": {
+          method: "POST",
+          "path":"/en-US/firefox/users/login",
+          "params": {
+            "username":"data[Login][email]",
+            "password":"data[Login][password]"
+          }
+        },
+        "disconnect": {
+          method: "POST",
+          "path":"/en-US/firefox/users/logout"
+        },
+        "query": {
+          method: "GET",
+          "path":"/"
         }
-      },
-      "disconnect": {
-        method: "POST",
-        "path":"/en-US/firefox/users/logout"
-      },
-      "query": {
-        method: "GET",
-        "path":"/"
       }
     }
   }

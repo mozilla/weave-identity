@@ -58,22 +58,24 @@ let desc = {
         xpath:"//form[@name='login_form']/input[@name='.challenge']/@value"
       }
     },
-    "methods-username-password-form": {
-      "connect": {
-        method: "POST",
-        "path":"/config/login",
-        "params": {
-          "username":"login",
-          "password":"passwd"
+    methods: {
+      "username-password-form": {
+        "connect": {
+          method: "POST",
+          "path":"/config/login",
+          "params": {
+            "username":"login",
+            "password":"passwd"
+          }
+        },
+        "disconnect": {
+          method: "POST",
+          "path":"/config/login?logout=1"
+        },
+        "query": {
+          method: "GET",
+          "path":"/"
         }
-      },
-      "disconnect": {
-        method: "POST",
-        "path":"/config/login?logout=1"
-      },
-      "query": {
-        method: "GET",
-        "path":"/"
       }
     }
   }

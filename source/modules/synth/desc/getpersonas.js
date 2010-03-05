@@ -54,25 +54,27 @@ let desc = {
         username: "//a[@href='http://www.getpersonas.com/en-US/profile']/../text()[position()=1]"
       }
     },
-    "methods-username-password-form": {
-      "connect": {
-        method: "POST",
-        "path":"/en-US/signin",
-        "params": {
-          "username":"login_user",
-          "password":"login_pass",
-          "_extra": {
-            action: "login"
+    methods: {
+      "username-password-form": {
+        "connect": {
+          method: "POST",
+          "path":"/en-US/signin",
+          "params": {
+            "username":"login_user",
+            "password":"login_pass",
+            "_extra": {
+              action: "login"
+            }
           }
+        },
+        "disconnect": {
+          method: "POST",
+          "path":"/en-US/signin?action=signout"
+        },
+        "query": {
+          method: "GET",
+          "path":"/"
         }
-      },
-      "disconnect": {
-        method: "POST",
-        "path":"/en-US/signin?action=signout"
-      },
-      "query": {
-        method: "GET",
-        "path":"/"
       }
     }
   }

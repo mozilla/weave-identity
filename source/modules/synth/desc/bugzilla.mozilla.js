@@ -53,22 +53,24 @@ let desc = {
         username: "//a[@href='index.cgi?logout=1']/../child::text()[position()=last()]"
       }
     },
-    "methods-username-password-form": {
-      "connect": {
-        method: "POST",
-        "path":"/index.cgi",
-        "params": {
-          "username":"Bugzilla_login",
-          "password":"Bugzilla_password"
+    methods: {
+      "username-password-form": {
+        "connect": {
+          method: "POST",
+          "path":"/index.cgi",
+          "params": {
+            "username":"Bugzilla_login",
+            "password":"Bugzilla_password"
+          }
+        },
+        "disconnect": {
+          method: "POST",
+          "path":"/index.cgi?logout=1"
+        },
+        "query": {
+          method: "GET",
+          "path":"/"
         }
-      },
-      "disconnect": {
-        method: "POST",
-        "path":"/index.cgi?logout=1"
-      },
-      "query": {
-        method: "GET",
-        "path":"/"
       }
     }
   }

@@ -133,25 +133,20 @@ Realm.prototype = {
     }
   },
 
+  // NOTE: we only support the username-password-form profile right now
   _chooseProfile: function() {
     if (this.amcdState != this.AMCD_JSON_OK)
       this._log.warn("Cannot access AMCD, not parsed (" + this.amcdState + ")");
 
     this._log.debug("Choosing matching AMCD profile");
 
-    let profiles = [];
-    for (let k in this._amcd) {
-      if (k.indexOf('methods-') == 0)
-      profiles.push(k.slice(8));
-    }
-
-    // we only support the username-password-form profile right now
-    if (profiles.indexOf('username-password-form') < 0)
+    if (!this._amcd.methods)
+      return null;
+    if (!this._amcd.methods['username-password-form'])
       return null;
 
     this._log.debug("Profile chosen: username-password-form");
-
-    return this._amcd['methods-username-password-form'];
+    return this._amcd.methods['username-password-form'];
   },
 
   _parseArgs: function(header) {
