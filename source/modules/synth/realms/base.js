@@ -110,8 +110,5 @@ SynthRealm.prototype = {
     res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     let ret = res.post(params);
     this.statusChange(ret.headers['X-Account-Management-Status']);
-
-    let res2 = new Resource(connect.params._extra.continue);
-    res2.get();
   }
 };
