@@ -41,7 +41,7 @@ stage_dir=$(objdir)/stage
 xpi_dir=$(objdir)/xpi
 
 addon_name := account-manager
-addon_version := 0.0.8
+addon_version := 0.0.9
 addon_id := {5e2f6fce-9590-49c3-946d-6356e68e961f}
 
 update_url := https://people.mozilla.com/~dmills/account-manager/
@@ -56,7 +56,7 @@ endif
 ifeq ($(update_rdf_url),)
   update_url_tag :=
 else
-  update_url_tag := <em:updateURL>$(update_url)</em:updateURL>
+  update_url_tag := <em:updateURL>$(update_rdf_url)</em:updateURL>
 endif
 
 buildid ?= ${ADDON_BUILDID}
