@@ -61,7 +61,9 @@ let desc = {
         "params": {
           "username":"login_user",
           "password":"login_pass",
-          "_extra":"action=login"
+          "_extra": {
+            action: "login"
+          }
         }
       },
       "disconnect": {

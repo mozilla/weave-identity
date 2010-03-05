@@ -104,11 +104,6 @@ SynthRealm.prototype = {
       let str = Utils.xpathText(dom, synth['connect-challenge'].xpath);
       if (str)
         params += '&' + synth['connect-challenge'].param + '=' + encodeURIComponent(str);
-      if (synth['connect-challenge'].xpath2) {
-        let str2 = Utils.xpathText(dom, synth['connect-challenge'].xpath2);
-        if (str2)
-          params += '&' + synth['connect-challenge'].param2 + '=' + encodeURIComponent(str2);
-      }
     }
 
     let res = new Resource(this.domain.obj.resolve(connect.path));
