@@ -1,6 +1,15 @@
 #!/bin/sh
 
+server=people.mozilla.com
+serverpath=public_html/account-manager
+
 make clean
 make xpi
 make
-scp dist/xpi/*.xpi dist/stage/update.rdf people.mozilla.com:public_html/account-manager/.
+
+cd dist/xpi
+xpifile=(*.xpi)
+cd -
+
+scp dist/xpi/$xpifile dist/stage/update.rdf $server:$serverpath/.
+ssh $server ln -sf $xpifile $serverpath/latest.xpi
