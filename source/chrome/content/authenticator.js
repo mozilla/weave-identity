@@ -127,13 +127,13 @@ let gWeaveAuthenticator = {
   },
 
   _openFirstRun: function() {
-    let url = "http://mozillalabs.com/welcome-to-account-manager/?version=" +
+    let url = "http://mozillalabs.com/conceptseries/identity/account-manager/?version=" +
       WeaveID.WEAVE_ID_VERSION;
     setTimeout(function() { window.openUILinkIn(url, "tab"); }, 500);
   },
 
   _openUpdated: function() {
-    let url = "http://mozillalabs.com/welcome-to-account-manager/?version=" +
+    let url = "http://mozillalabs.com/conceptseries/identity/account-manager/?version=" +
       WeaveID.WEAVE_ID_VERSION;
     setTimeout(function() { window.openUILinkIn(url, "tab"); }, 500);
   },

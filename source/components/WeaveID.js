@@ -61,8 +61,12 @@ WeaveIDService.prototype = {
     * fennec-weave-overlay.js.
     */
     case "sessionstore-windows-restored":
-      Cu.import("resource://weave-identity/service.js");
-      WeaveID.Service.onStartup();
+      try {
+        Cu.import("resource://weave-identity/service.js");
+        WeaveID.Service.onStartup();
+      } catch (e) {
+        dump(e + "\n");
+      }
       break;
     }
   }
