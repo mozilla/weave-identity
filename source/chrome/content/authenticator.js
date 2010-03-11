@@ -111,6 +111,12 @@ let gWeaveAuthenticator = {
       gBrowser.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
       this.Observers.add("weaveid-realm-updated", this.onRealmUpdated, this);
     }
+
+    if (WeaveID.Svc.Prefs.get("lastversion") == "firstrun")
+      this._openFirstRun();
+    else if (WeaveID.Svc.Prefs.get("lastversion") != WeaveID.WEAVE_ID_VERSION)
+      this._openUpdated();
+    WeaveID.Svc.Prefs.set("lastversion", WeaveID.WEAVE_ID_VERSION);
   },
 
   onUnload: function() {
@@ -118,6 +124,18 @@ let gWeaveAuthenticator = {
       gBrowser.removeProgressListener(this);
       this.Observers.remove("weaveid-realm-updated", this.onRealmUpdated, this);
     }
+  },
+
+  _openFirstRun: function() {
+    let url = "http://mozillalabs.com/welcome-to-account-manager/?version=" +
+      WeaveID.WEAVE_ID_VERSION;
+    setTimeout(function() { window.openUILinkIn(url, "tab"); }, 500);
+  },
+
+  _openUpdated: function() {
+    let url = "http://mozillalabs.com/welcome-to-account-manager/?version=" +
+      WeaveID.WEAVE_ID_VERSION;
+    setTimeout(function() { window.openUILinkIn(url, "tab"); }, 500);
   },
 
   addToolbarItem: function() {
