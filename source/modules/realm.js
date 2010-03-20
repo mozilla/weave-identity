@@ -47,6 +47,7 @@ Cu.import("resource://weave-identity/ext/log4moz.js");
 Cu.import("resource://weave-identity/ext/resource.js");
 Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
+Cu.import("resource://weave-identity/profilemanager.js");
 
 function Realm(realmUrl, domainUrl) {
   this._init(realmUrl, domainUrl);
@@ -94,6 +95,10 @@ Realm.prototype = {
     this._domain.obj = Utils.makeURL(this._domain);
   },
 
+  get profile() {
+    return this._profile;
+  },
+
   _init: function(realmUrl, domainUrl) {
     this.amcdState = this.STATE_UNKNOWN;
     this.signinState = this.STATE_UNKNOWN;
@@ -114,7 +119,7 @@ Realm.prototype = {
 
     if (ret.success) {
       try {
-        this._amcd = ret.obj;
+        this.amcd = ret.obj;
         this.amcdState = this.AMCD_JSON_OK;
 
         this._profile = this._chooseProfile();
@@ -122,7 +127,7 @@ Realm.prototype = {
           this.amcdState = this.AMCD_OK;
 
         if (this.signinState == this.STATE_UNKNOWN)
-          this.querySigninState();
+          this.execute('querySigninState');
 
       } catch (e) {
         this.amcdState = this.AMCD_PARSE_ERROR;
@@ -133,20 +138,28 @@ Realm.prototype = {
     }
   },
 
-  // NOTE: we only support the username-password-form profile right now
+  // FIXME: this should take other data into consideration (e.g., if a
+  // profile has been used before, stick with it)
   _chooseProfile: function() {
     if (this.amcdState != this.AMCD_JSON_OK)
       this._log.warn("Cannot access AMCD, not parsed (" + this.amcdState + ")");
 
     this._log.debug("Choosing matching AMCD profile");
+    let profile;
 
-    if (!this._amcd.methods)
-      return null;
-    if (!this._amcd.methods['username-password-form'])
-      return null;
+    if (this.amcd.methods) {
+      for (let name in this.amcd.methods) {
+        profile = ProfileManager.Service.getProfile(name, this);
+        if (profile)
+          break;
+      }
+    }
 
-    this._log.debug("Profile chosen: username-password-form");
-    return this._amcd.methods['username-password-form'];
+    if (profile)
+      this._log.debug("Profile chosen: " + profile.name);
+    else
+      this._log.warn("No profile in common");
+    return profile;
   },
 
   _parseArgs: function(header) {
@@ -220,86 +233,19 @@ Realm.prototype = {
     }
   },
 
-  _checkAmcd: function() {
+  execute: function(method) {
+    if (['querySigninState', 'connect', 'disconnect'].indexOf(method) < 0) {
+      this._log.error("Unknown method: " + method);
+      return;
+    }
     if (this.amcdState != this.AMCD_OK) {
       this._log.error("Cannot execute method, no profile. AMCD state: " + this.amcdState);
-      return false;
-    }
-    return true;
-  },
-
-  querySigninState: function() {
-    this._log.trace('Querying signin state');
-
-    if (!this._checkAmcd())
       return;
-
-    let query = this._profile.query;
-    if (query && query.method == 'GET') {
-      let res = new Resource(this.domain.obj.resolve(query.path));
-      this.statusChange(res.get().headers['X-Account-Management-Status']);
-    } else
-      this._log.warn('No supported methods in common for query');
-  },
-
-  connect: function() {
-    this._log.trace('Connecting');
-
-    if (!this._checkAmcd())
-      return;
-
-    // check if we're already trying to sign in
-    // fixme: doesn't time out or check for errors in any way
-    if (this.signinState == this.SIGNING_IN)
-      return;
-    this.signinState = this.SIGNING_IN;
-
-    if (this._profile.connect && this._profile.connect.method == 'POST') {
-      this._connect_POST();
-    } else {
-      this._log.warn('No supported methods in common for connect');
-    }
-  },
-  _connect_POST: function() {
-    let connect = this._profile.connect.POST;
-    let logins = Utils.getLogins(this.domain);
-    let username, password;
-    if (logins && logins.length > 0) {
-      username = logins[0].username;
-      password = logins[0].password;
     }
 
-    let params = 
-      connect.params.username + '=' + encodeURIComponent(username) + '&' +
-      connect.params.password + '=' + encodeURIComponent(password);
-    let res = new Resource(this.domain.obj.resolve(connect.path));
-    res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-    let ret = res.post(params);
-    this.statusChange(ret.headers['X-Account-Management-Status']);
-  },
-
-  disconnect: function() {
-    this._log.trace('Disconnecting');
-
-    if (!this._checkAmcd())
-      return;
-
-    // check if we're already trying to sign out
-    // fixme: doesn't time out or check for errors in any way
-    if (this.signinState == this.SIGNING_OUT)
-      return;
-    this.signinState = this.SIGNING_OUT;
-
-    if (this._profile.disconnect &&
-        this._profile.disconnect.method == 'POST') {
-      this._disconnect_POST();
-    } else
-      this._log.warn('No supported methods in common for disconnect');
-  },
-  _disconnect_POST: function() {
-    let disconnect = this._profile.disconnect;
-    let res = new Resource(this.domain.obj.resolve(disconnect.path));
-    this.statusChange(res.get().headers['X-Account-Management-Status']);
+    this._log.debug("Executing profile method: " + method);
+    this._profile[method]();
   }
 };
+
 Realm.__proto__ = Realm.prototype; // So that Realm.STATE_* work

@@ -34,7 +34,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-let EXPORTED_SYMBOLS = ['FacebookSynthRealm'];
+let EXPORTED_SYMBOLS = ['SynthProfile'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -44,35 +44,45 @@ const Cu = Components.utils;
 Cu.import("resource://weave-identity/ext/log4moz.js");
 Cu.import("resource://weave-identity/ext/resource.js");
 Cu.import("resource://weave-identity/util.js");
-Cu.import("resource://weave-identity/synth/realms/base.js");
-Cu.import("resource://weave-identity/synth/profiles/base.js");
+Cu.import("resource://weave-identity/profiles/username-password-form.js");
 
-function FacebookSynthRealm(descriptor) {
-  this._init(descriptor);
-};
-FacebookSynthRealm.prototype = {
-  __proto__: SynthRealm.prototype,
-  _logName: "FacebookSynthRealm",
-  _logPref: "log.logger.realm",
-
-  _chooseProfile: function() {
-    return new FacebookSynthProfile(this);
-  }
-};
-
-function FacebookSynthProfile(realm) {
+function SynthProfile(realm) {
   this._init(realm);
 }
-FacebookSynthProfile.prototype = {
-  __proto__: SynthProfile.prototype,
-  _logName: "FacebookSynthProfile",
+SynthProfile.prototype = {
+  __proto__: UPFormProfile.prototype,
+  _logName: "SynthProfile",
 
-  _disconnect_POST: function() {
-    let challenge = this._realm.amcd._synth['disconnect-path'];
-    let challengeUri = this._realm.domain.obj.resolve(challenge.path);
-    let dom = new Resource(challengeUri).get().dom;
-    let disconnectUri = Utils.xpathText(dom, challenge.xpath);
-    let res = new Resource(this._realm.domain.obj.resolve(disconnectUri));
-    this._realm.statusChange(res.get().headers['X-Account-Management-Status']);
+  _connect_POST: function() {
+    let connect = this._profile.connect;
+    let logins = Utils.getLogins(this._realm.domain);
+    let username, password;
+    if (logins && logins.length > 0) {
+      username = logins[0].username;
+      password = logins[0].password;
+    }
+
+    let params = 
+      connect.params.username + '=' + encodeURIComponent(username) + '&' +
+      connect.params.password + '=' + encodeURIComponent(password);
+    if (connect.params._extra) {
+      for each (let p in connect.params._extra) {
+        params += '&' + p + "=" + encodeURIComponent(connect.params._extra[p]);
+      }
+    }
+
+    let synth = this._realm.amcd._synth;
+    if (synth['connect-challenge']) {
+      let uri = this._realm.domain.obj.resolve(synth['connect-challenge'].path);
+      let dom = new Resource(uri).get().dom;
+      let str = Utils.xpathText(dom, synth['connect-challenge'].xpath);
+      if (str)
+        params += '&' + synth['connect-challenge'].param + '=' + encodeURIComponent(str);
+    }
+
+    let res = new Resource(this._realm.domain.obj.resolve(connect.path));
+    res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    let ret = res.post(params);
+    this._realm.statusChange(ret.headers['X-Account-Management-Status']);
   }
 };

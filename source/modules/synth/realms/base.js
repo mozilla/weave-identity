@@ -42,21 +42,21 @@ const Cr = Components.results;
 const Cu = Components.utils;
 
 Cu.import("resource://weave-identity/ext/log4moz.js");
-Cu.import("resource://weave-identity/ext/resource.js");
 Cu.import("resource://weave-identity/util.js");
 Cu.import("resource://weave-identity/realm.js");
+Cu.import("resource://weave-identity/synth/profiles/base.js");
 
 function SynthRealm(descriptor) {
   this._init(descriptor);
 };
 SynthRealm.prototype = {
   __proto__: Realm.prototype,
+  _logName: "SynthRealm",
+  _logPref: "log.logger.realm",
 
   _init: function(descriptor) {
-    this._amcd = descriptor.amcd;
+    this.amcd = descriptor.amcd;
     Realm.prototype._init.apply(this, [descriptor.realmUri]);
-    this._log = Log4Moz.repository.getLogger("SynthRealm");
-    this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.realm")];
   },
 
   refreshAmcd: function() {
@@ -71,7 +71,7 @@ SynthRealm.prototype = {
     if (progress.isLoadingDocument)
       return; // need the full doc to scrape it
     let user = Utils.xpathText(progress.DOMWindow.document,
-                               this._amcd._synth.scrape.username);
+                               this.amcd._synth.scrape.username);
     this._log.trace("Scraped username: " + user);
     if (user)
       this.statusChange('active; name="' + user + '"');
@@ -79,36 +79,7 @@ SynthRealm.prototype = {
       this.statusChange('none;');
   },
 
-  _connect_POST: function() {
-    let connect = this._profile.connect;
-    let logins = Utils.getLogins(this.domain);
-    let username, password;
-    if (logins && logins.length > 0) {
-      username = logins[0].username;
-      password = logins[0].password;
-    }
-
-    let params = 
-      connect.params.username + '=' + encodeURIComponent(username) + '&' +
-      connect.params.password + '=' + encodeURIComponent(password);
-    if (connect.params._extra) {
-      for each (let p in connect.params._extra) {
-        params += '&' + p + "=" + encodeURIComponent(connect.params._extra[p]);
-      }
-    }
-
-    let synth = this._amcd._synth;
-    if (synth['connect-challenge']) {
-      let uri = this.domain.obj.resolve(synth['connect-challenge'].path);
-      let dom = new Resource(uri).get().dom;
-      let str = Utils.xpathText(dom, synth['connect-challenge'].xpath);
-      if (str)
-        params += '&' + synth['connect-challenge'].param + '=' + encodeURIComponent(str);
-    }
-
-    let res = new Resource(this.domain.obj.resolve(connect.path));
-    res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
-    let ret = res.post(params);
-    this.statusChange(ret.headers['X-Account-Management-Status']);
+  _chooseProfile: function() {
+    return new SynthProfile(this);
   }
 };

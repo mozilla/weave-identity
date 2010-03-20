@@ -7,6 +7,7 @@ pref("extensions.weave.id.log.appender.debugLog", "Trace");
 pref("extensions.weave.id.log.rootLogger", "Trace");
 pref("extensions.weave.id.log.logger.service", "Trace");
 pref("extensions.weave.id.log.logger.realm", "Trace");
+pref("extensions.weave.id.log.logger.profiles", "Trace");
 pref("extensions.weave.id.log.logger.network.resources", "Debug");
 
 pref("extensions.weave.id.openId.enabled", true);

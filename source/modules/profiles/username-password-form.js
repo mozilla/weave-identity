@@ -34,7 +34,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-let EXPORTED_SYMBOLS = ['YahooSynthRealm'];
+const EXPORTED_SYMBOLS = ['UPFormProfile'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -43,33 +43,53 @@ const Cu = Components.utils;
 
 Cu.import("resource://weave-identity/ext/log4moz.js");
 Cu.import("resource://weave-identity/ext/resource.js");
+Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
-Cu.import("resource://weave-identity/synth/realms/base.js");
-Cu.import("resource://weave-identity/synth/profiles/base.js");
 
-function YahooSynthRealm(descriptor) {
-  this._init(descriptor);
-};
-YahooSynthRealm.prototype = {
-  __proto__: SynthRealm.prototype,
-  _logName: "YahooSynthRealm",
-  _logPref: "log.logger.realm",
-
-  _chooseProfile: function() {
-    return new YahooSynthProfile(this);
-  }
-};
-
-function YahooSynthProfile(realm) {
+function UPFormProfile(realm) {
   this._init(realm);
 }
-YahooSynthProfile.prototype = {
-  __proto__: SynthProfile.prototype,
-  _logName: "YahooSynthProfile",
+UPFormProfile.prototype = {
+  _logName: "UPFormProfile",
+  _logPref: "log.logger.profiles",
 
+  name: "username-password-form",
+
+  _init: function(realm) {
+    this._realm = realm;
+    this._profile = realm.amcd.methods[this.name];
+    this._log = Log4Moz.repository.getLogger(this._logName);
+    this._log.level = Log4Moz.Level[Svc.Prefs.get(this._logPref)];
+  },
+
+  querySigninState: function() {
+    this._log.trace('Querying signin state');
+
+    let query = this._profile.query;
+    if (query && query.method == 'GET') {
+      let res = new Resource(this._realm.domain.obj.resolve(query.path));
+      this._realm.statusChange(res.get().headers['X-Account-Management-Status']);
+    } else
+      this._log.warn('No supported methods in common for query');
+  },
+
+  connect: function() {
+    this._log.trace('Connecting');
+
+    // check if we're already trying to sign in
+    // fixme: doesn't time out or check for errors in any way
+    if (this._realm.signinState == this.SIGNING_IN)
+      return;
+    this._realm.signinState = this._realm.SIGNING_IN;
+
+    if (this._profile.connect && this._profile.connect.method == 'POST') {
+      this._connect_POST();
+    } else {
+      this._log.warn('No supported methods in common for connect');
+    }
+  },
   _connect_POST: function() {
-    try {
-    let connect = this._profile.connect;
+    let connect = this._profile.connect.POST;
     let logins = Utils.getLogins(this._realm.domain);
     let username, password;
     if (logins && logins.length > 0) {
@@ -78,28 +98,32 @@ YahooSynthProfile.prototype = {
     }
 
     let params = 
-      connect.params.username + '=' + encodeURIComponent(username);
-
-    let synth = this._realm.amcd._synth;
-    if (synth['connect-challenge']) {
-      let uri = this._realm.domain.obj.resolve(synth['connect-challenge'].path);
-      let dom = new Resource(uri).get().dom;
-      let str = Utils.xpathText(dom, synth['connect-challenge'].xpath);
-      if (str) {
-        // fixme - see yahoo's login js
-        params += '&' + connect.params.password + '=' + encodeURIComponent(password);
-        params += '&' + synth['connect-challenge'].param + '=' + encodeURIComponent(str);
-      }
-    } else {
-      params += '&' + connect.params.password + '=' + encodeURIComponent(password);      
-    }
-
+      connect.params.username + '=' + encodeURIComponent(username) + '&' +
+      connect.params.password + '=' + encodeURIComponent(password);
     let res = new Resource(this._realm.domain.obj.resolve(connect.path));
     res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     let ret = res.post(params);
     this._realm.statusChange(ret.headers['X-Account-Management-Status']);
-    } catch (e) {
-      this._log.error(e);
-    }
+  },
+
+  disconnect: function() {
+    this._log.trace('Disconnecting');
+
+    // check if we're already trying to sign out
+    // fixme: doesn't time out or check for errors in any way
+    if (this._realm.signinState == this._realm.SIGNING_OUT)
+      return;
+    this._realm.signinState = this._realm.SIGNING_OUT;
+
+    if (this._profile.disconnect &&
+        this._profile.disconnect.method == 'POST') {
+      this._disconnect_POST();
+    } else
+      this._log.warn('No supported methods in common for disconnect');
+  },
+  _disconnect_POST: function() {
+    let disconnect = this._profile.disconnect;
+    let res = new Resource(this._realm.domain.obj.resolve(disconnect.path));
+    this._realm.statusChange(res.get().headers['X-Account-Management-Status']);
   }
 };

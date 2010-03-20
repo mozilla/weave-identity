@@ -211,14 +211,14 @@ let gWeaveAuthenticator = {
 
   onConnect: function() {
     this._log.debug("Attempting to connect");
-    this._curRealm.connect();
+    this._curRealm.execute('connect');
     gBrowser.mCurrentBrowser.reload();
     this._popup.hidePopup();
   },
 
   onDisconnect: function() {
     this._log.debug("Attempting to disconnect");
-    this._curRealm.disconnect();
+    this._curRealm.execute('disconnect');
     gBrowser.mCurrentBrowser.reload();
     this._popup.hidePopup();
   },

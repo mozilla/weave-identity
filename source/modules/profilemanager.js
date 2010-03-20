@@ -34,7 +34,7 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-let EXPORTED_SYMBOLS = ['FacebookSynthRealm'];
+const EXPORTED_SYMBOLS = ['ProfileManager'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -42,37 +42,58 @@ const Cr = Components.results;
 const Cu = Components.utils;
 
 Cu.import("resource://weave-identity/ext/log4moz.js");
+Cu.import("resource://weave-identity/ext/Observers.js");
 Cu.import("resource://weave-identity/ext/resource.js");
+Cu.import("resource://weave-identity/constants.js");
 Cu.import("resource://weave-identity/util.js");
-Cu.import("resource://weave-identity/synth/realms/base.js");
-Cu.import("resource://weave-identity/synth/profiles/base.js");
 
-function FacebookSynthRealm(descriptor) {
-  this._init(descriptor);
-};
-FacebookSynthRealm.prototype = {
-  __proto__: SynthRealm.prototype,
-  _logName: "FacebookSynthRealm",
-  _logPref: "log.logger.realm",
+let ProfileManager = {};
+Utils.lazy(ProfileManager, 'Service', ProfileManagerSvc);
 
-  _chooseProfile: function() {
-    return new FacebookSynthProfile(this);
-  }
-};
+function ProfileManagerSvc() {
+  this._log = Log4Moz.repository.getLogger("ProfileManager");
+  this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.profiles")];
 
-function FacebookSynthProfile(realm) {
-  this._init(realm);
+  this._profiles = {};
+
+  // auto-register bundled profiles
+  this._registerBundledProfiles();
+
+  // let others know the manager has started, so they can register with it now
+  Observers.notify("weaveid-profile-manager-start");
 }
-FacebookSynthProfile.prototype = {
-  __proto__: SynthProfile.prototype,
-  _logName: "FacebookSynthProfile",
+ProfileManagerSvc.prototype = {
+  _registerBundledProfiles: function() {
+    let dir = Utils.makeURI("resource://weave-identity/profiles");
+    dir.QueryInterface(Ci.nsIFileURL);
+    dir = dir.file;
+  
+    let entries = dir.directoryEntries;
+    let array = [];
+    while (entries.hasMoreElements()) {
+      let entry = entries.getNext();
+      entry.QueryInterface(Ci.nsIFile);
+      try {
+        let sym = {};
+        Cu.import("resource://weave-identity/profiles/" + entry.leafName, sym);
+        for (let profile in sym) {
+          this.registerProfile(sym[profile]);
+        }
+      } catch (e) {
+        this._log.error("Could not load profiles/" + entry.leafName + e);
+      }
+    }
+  },
 
-  _disconnect_POST: function() {
-    let challenge = this._realm.amcd._synth['disconnect-path'];
-    let challengeUri = this._realm.domain.obj.resolve(challenge.path);
-    let dom = new Resource(challengeUri).get().dom;
-    let disconnectUri = Utils.xpathText(dom, challenge.xpath);
-    let res = new Resource(this._realm.domain.obj.resolve(disconnectUri));
-    this._realm.statusChange(res.get().headers['X-Account-Management-Status']);
+  registerProfile: function(profile) {
+    // FIXME: check overwrite and warn (?)
+    this._log.debug("Registering Profile: " + profile.prototype.name);
+    this._profiles[profile.prototype.name] = profile;
+  },
+
+  getProfile: function(name, realm) {
+    if (name in this._profiles)
+      return new this._profiles[name](realm);
+    return null;
   }
 };
