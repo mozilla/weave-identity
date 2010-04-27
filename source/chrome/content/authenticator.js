@@ -195,7 +195,8 @@ let gWeaveAuthenticator = {
   // UI Callbacks
 
   onButtonCommand: function(event) {
-    this._popup.openPopup(this._button, "after_end", 25, -10);
+    if (this._curRealm.signinState)
+      this._popup.openPopup(this._button, "after_end", 25, -10);
   },
 
   onPopupShowing: function(event) {

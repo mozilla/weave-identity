@@ -114,8 +114,8 @@ Realm.prototype = {
   refreshAmcd: function Realm_refreshAmcd() {
     this.amcdState = this.AMCD_DOWNLOADING;
 
-    let res = new Resource(this.realmUrl);
-    let ret = res.get();
+    let res = new Resource(this.realmUrl.obj);
+    let ret = res.get(); 
 
     if (ret.success) {
       try {

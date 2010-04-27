@@ -65,7 +65,7 @@ UPFormProfile.prototype = {
   querySigninState: function() {
     this._log.trace('Querying signin state');
 
-    let query = this._profile.query;
+    let query = this._profile.sessionstatus;
     if (query && query.method == 'GET') {
       let res = new Resource(this._realm.domain.obj.resolve(query.path));
       this._realm.statusChange(res.get().headers['X-Account-Management-Status']);
@@ -89,7 +89,7 @@ UPFormProfile.prototype = {
     }
   },
   _connect_POST: function() {
-    let connect = this._profile.connect.POST;
+    let connect = this._profile.connect;
     let logins = Utils.getLogins(this._realm.domain);
     let username, password;
     if (logins && logins.length > 0) {

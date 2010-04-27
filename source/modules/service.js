@@ -217,6 +217,12 @@ WeaveIDSvc.prototype = {
       .createInstance(Ci.nsIDOMParser);
     let doc = parser.parseFromString(hostmeta, "text/xml");
 
+    let links = doc.getElementsByTagName("Link");
+    for (let i = 0; i < links.length; i++) {
+      if (links[i].attributes.rel.value == 'http://services.mozilla.com/amcd/0.1')
+        return location.resolve(links[i].attributes.href.value);
+    }
+    // FIXME: remove
     let paths = ["//Link[@rel='http://services.mozilla.com/amcd/0.1'/@href",
                  "//Link[@rel='http://services.mozilla.com/amcd/0.1'/href",
                  "//Link[rel='http://services.mozilla.com/amcd/0.1'/@href",
@@ -226,6 +232,8 @@ WeaveIDSvc.prototype = {
       if (elt)
         return location.resolve(elt);
     }
+
+    this._log.trace("Host-meta exists, but AMCD URL not found.");
     return null;
   }
 };
