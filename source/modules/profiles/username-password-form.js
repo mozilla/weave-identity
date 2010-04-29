@@ -118,10 +118,18 @@ UPFormProfile.prototype = {
     if (this._profile.disconnect &&
         this._profile.disconnect.method == 'POST') {
       this._disconnect_POST();
+    } else if (this._profile.disconnect &&
+               this._profile.disconnect.method == 'GET') {
+      this._disconnect_GET();
     } else
       this._log.warn('No supported methods in common for disconnect');
   },
   _disconnect_POST: function() {
+    let disconnect = this._profile.disconnect;
+    let res = new Resource(this._realm.domain.obj.resolve(disconnect.path));
+    this._realm.statusChange(res.post().headers['X-Account-Management-Status']);
+  },
+  _disconnect_GET: function() {
     let disconnect = this._profile.disconnect;
     let res = new Resource(this._realm.domain.obj.resolve(disconnect.path));
     this._realm.statusChange(res.get().headers['X-Account-Management-Status']);
