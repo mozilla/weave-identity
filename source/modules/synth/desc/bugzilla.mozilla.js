@@ -64,7 +64,7 @@ let desc = {
           }
         },
         "disconnect": {
-          method: "POST",
+          method: "GET",
           "path":"/index.cgi?logout=1"
         },
         "query": {

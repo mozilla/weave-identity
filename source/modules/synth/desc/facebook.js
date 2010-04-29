@@ -66,7 +66,7 @@ let desc = {
           }
         },
         "disconnect": {
-          method: "POST"
+          method: "GET"
         },
         "query": {
           method: "GET",

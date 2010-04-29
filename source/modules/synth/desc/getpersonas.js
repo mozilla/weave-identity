@@ -68,7 +68,7 @@ let desc = {
           }
         },
         "disconnect": {
-          method: "POST",
+          method: "GET",
           "path":"/en-US/signin?action=signout"
         },
         "query": {

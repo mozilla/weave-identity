@@ -69,7 +69,7 @@ let desc = {
           }
         },
         "disconnect": {
-          method: "POST",
+          method: "GET",
           "path":"/config/login?logout=1"
         },
         "query": {

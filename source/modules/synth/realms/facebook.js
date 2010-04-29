@@ -67,7 +67,7 @@ FacebookSynthProfile.prototype = {
   __proto__: SynthProfile.prototype,
   _logName: "FacebookSynthProfile",
 
-  _disconnect_POST: function() {
+  _disconnect_GET: function() {
     let challenge = this._realm.amcd._synth['disconnect-path'];
     let challengeUri = this._realm.domain.obj.resolve(challenge.path);
     let dom = new Resource(challengeUri).get().dom;

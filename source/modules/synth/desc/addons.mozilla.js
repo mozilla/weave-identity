@@ -60,7 +60,7 @@ let desc = {
           }
         },
         "disconnect": {
-          method: "POST",
+          method: "GET",
           "path":"/en-US/firefox/users/logout"
         },
         "query": {
