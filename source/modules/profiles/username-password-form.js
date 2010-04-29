@@ -62,7 +62,7 @@ UPFormProfile.prototype = {
     this._log.level = Log4Moz.Level[Svc.Prefs.get(this._logPref)];
   },
 
-  querySigninState: function() {
+  sessionstatus: function() {
     this._log.trace('Querying signin state');
 
     let query = this._profile.sessionstatus;
@@ -100,6 +100,11 @@ UPFormProfile.prototype = {
     let params = 
       connect.params.username + '=' + encodeURIComponent(username) + '&' +
       connect.params.password + '=' + encodeURIComponent(password);
+
+    if (this._realm.token)
+      params += '&' + connect.params.token + '=' +
+        encodeURIComponent(this._realm.token);
+
     let res = new Resource(this._realm.domain.obj.resolve(connect.path));
     res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
     let ret = res.post(params);
@@ -127,11 +132,26 @@ UPFormProfile.prototype = {
   _disconnect_POST: function() {
     let disconnect = this._profile.disconnect;
     let res = new Resource(this._realm.domain.obj.resolve(disconnect.path));
-    this._realm.statusChange(res.post().headers['X-Account-Management-Status']);
+    let params;
+    if (this._realm.token)
+      params = connect.params.token + '=' + encodeURIComponent(this._realm.token);
+    this._realm.statusChange(res.post(params).headers['X-Account-Management-Status']);
   },
   _disconnect_GET: function() {
     let disconnect = this._profile.disconnect;
     let res = new Resource(this._realm.domain.obj.resolve(disconnect.path));
+    let params;
+
+    if (this._realm.token) {
+      params = connect.params.token + '=' + encodeURIComponent(this._realm.token);
+      // be careful not to trample any params already there
+      res.uri.QueryInterface(Ci.nsIURL);
+      if (res.uri.query)
+        res.uri.query += '&' + params;
+      else
+        res.uri.query = params;
+    }
+
     this._realm.statusChange(res.get().headers['X-Account-Management-Status']);
   }
 };

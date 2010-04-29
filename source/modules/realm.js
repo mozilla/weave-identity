@@ -127,7 +127,7 @@ Realm.prototype = {
           this.amcdState = this.AMCD_OK;
 
         if (this.signinState == this.STATE_UNKNOWN)
-          this.execute('querySigninState');
+          this.execute('sessionstatus');
 
       } catch (e) {
         this.amcdState = this.AMCD_PARSE_ERROR;
@@ -218,6 +218,9 @@ Realm.prototype = {
     let event = re.exec(header);
     let args = this._parseArgs(header.replace(re, ''));
 
+    if (args["token"])
+      this.token = args["token"];
+
     switch (event[1]) {
     case "active":
       this.signinState = Realm.SIGNED_IN;
@@ -234,7 +237,7 @@ Realm.prototype = {
   },
 
   execute: function(method) {
-    if (['querySigninState', 'connect', 'disconnect'].indexOf(method) < 0) {
+    if (['sessionstatus', 'connect', 'disconnect'].indexOf(method) < 0) {
       this._log.error("Unknown method: " + method);
       return;
     }
