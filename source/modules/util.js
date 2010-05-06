@@ -149,28 +149,32 @@ let Utils = {
 
   // Generates a brand-new globally unique identifier (GUID).
   makeGUID: function makeGUID() {
+    // Generate ten 70-value characters for a 70^10 (~61.29-bit) GUID
+    return Utils.makeRandom(10);
+  },
+
+  // Generates a random string using a limited set of characters
+  makeRandom: function makeRandom(length) {
+    if (!length)
+      length = 10;
+
     // 70 characters that are not-escaped URL-friendly
     const code =
       "!()*-.0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~";
 
-    let guid = "";
+    let str = "";
     let num = 0;
     let val;
 
-    // Generate ten 70-value characters for a 70^10 (~61.29-bit) GUID
-    for (let i = 0; i < 10; i++) {
-      // Refresh the number source after using it a few times
-      if (i == 0 || i == 5)
-        num = Math.random();
-
-      // Figure out which code to use for the next GUID character
-      num *= 70;
+    for (let i = 0; i < length; i++) {
+      // Figure out which code to use for the next character
+      num = Math.random();
+      num *= code.length;
       val = Math.floor(num);
-      guid += code[val];
-      num -= val;
+      str += code[val];
     }
 
-    return guid;
+    return str;
   },
 
   anno: function anno(id, anno, val, expire) {
@@ -772,8 +776,8 @@ let Utils = {
    * Get logins (username/passwords) from the login manager for a
    * domain & username combination
    */
-  getLogins: function(domain, username) {
-    let logins = Svc.Login.findLogins({}, domain, domain, null);
+  getLogins: function(domain, realm, username) {
+    let logins = Svc.Login.findLogins({}, domain, domain, realm);
 
     if (!username)
       return logins;
@@ -784,6 +788,23 @@ let Utils = {
     }
 
     return null;
+  },
+
+  persistLogin: function(username, password, domain, realm) {
+    let logins = Svc.Login.findLogins({}, domain, domain, realm);
+
+    // Clean up any existing passwords
+    for each (let login in logins) {
+      if (login.username == username)
+        Svc.Login.removeLogin(login);
+    }
+
+    // Add the new username/password
+    let nsLoginInfo = new Components.Constructor(
+      "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo, "init");
+    let newLogin = new nsLoginInfo(domain, null, realm,
+                                   username, password, "", "");
+    Svc.Login.addLogin(newLogin);
   },
 
   __prefs: null,
