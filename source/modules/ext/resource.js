@@ -271,10 +271,9 @@ Resource.prototype = {
     Utils.lazy2(ret, "obj", function() JSON.parse(ret));
 
     // lazy getter to convert XML to a DOM object
-    Utils.lazy2(ret, "xmldom", Utils.bind2(function() {
+    Utils.lazy2(ret, "xmldom", Utils.bind2(this, function() {
       let DOMParser = new Components.Constructor("@mozilla.org/xmlextras/domparser;1", "nsIDOMParser");
       let parser = new DOMParser();
-      parser.init(this.spec, this.spec, this.spec);
       return parser.parseFromString(ret, "text/xml");
     }));
 
