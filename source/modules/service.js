@@ -213,20 +213,18 @@ WeaveIDSvc.prototype = {
     if (!hostmeta || hostmeta.status == 404)
       return null;
 
-    let parser = Cc["@mozilla.org/xmlextras/domparser;1"]
-      .createInstance(Ci.nsIDOMParser);
-    let doc = parser.parseFromString(hostmeta, "text/xml");
+    let doc = hostmeta.xmldom;
+    let common = "//*[name()='Link' and namespace-uri()='http://docs.oasis-open.org/ns/xri/xrd-1.0' and ";
+    let rel = rel='http://services.mozilla.com/amcd/0.1';
+    let paths = [common + "@" + rel + "]/@href",
+                 common + "@" + rel + "]/href",
+                 common + rel + "]/@href",
+                 common + rel + "]/href",
+                 "//Link[@rel='http://services.mozilla.com/amcd/0.1']/@href",
+                 "//Link[@rel='http://services.mozilla.com/amcd/0.1']/@href",
+                 "//Link[rel='http://services.mozilla.com/amcd/0.1']/@href",
+                 "//Link[rel='http://services.mozilla.com/amcd/0.1']/href"];
 
-    let links = doc.getElementsByTagName("Link");
-    for (let i = 0; i < links.length; i++) {
-      if (links[i].attributes.rel.value == 'http://services.mozilla.com/amcd/0.1')
-        return location.resolve(links[i].attributes.href.value);
-    }
-    // FIXME: remove
-    let paths = ["//Link[@rel='http://services.mozilla.com/amcd/0.1'/@href",
-                 "//Link[@rel='http://services.mozilla.com/amcd/0.1'/href",
-                 "//Link[rel='http://services.mozilla.com/amcd/0.1'/@href",
-                 "//Link[rel='http://services.mozilla.com/amcd/0.1'/href"];
     for each (let path in paths) {
       let elt = Utils.xpathText(doc, path);
       if (elt)
