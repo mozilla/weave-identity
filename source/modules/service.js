@@ -215,7 +215,7 @@ WeaveIDSvc.prototype = {
 
     let doc = hostmeta.xmldom;
     let common = "//*[name()='Link' and namespace-uri()='http://docs.oasis-open.org/ns/xri/xrd-1.0' and ";
-    let rel = rel='http://services.mozilla.com/amcd/0.1';
+    let rel = rel='rel=\'http://services.mozilla.com/amcd/0.1\'';
     let paths = [common + "@" + rel + "]/@href",
                  common + "@" + rel + "]/href",
                  common + rel + "]/@href",
@@ -226,6 +226,7 @@ WeaveIDSvc.prototype = {
                  "//Link[rel='http://services.mozilla.com/amcd/0.1']/href"];
 
     for each (let path in paths) {
+      this._log.debug("trying path " + path);
       let elt = Utils.xpathText(doc, path);
       if (elt)
         return location.resolve(elt);
