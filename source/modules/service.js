@@ -226,7 +226,6 @@ WeaveIDSvc.prototype = {
                  "//Link[rel='http://services.mozilla.com/amcd/0.1']/href"];
 
     for each (let path in paths) {
-      this._log.debug("trying path " + path);
       let elt = Utils.xpathText(doc, path);
       if (elt)
         return location.resolve(elt);

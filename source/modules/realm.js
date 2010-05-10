@@ -56,7 +56,7 @@ Realm.prototype = {
   _logName: "Realm",
   _logPref: "log.logger.realm",
 
-  // Used for amcdState, signinState
+  // Used for amcdState, connState
   STATE_UNKNOWN: "unknown",
 
   // AMCD states
@@ -69,11 +69,26 @@ Realm.prototype = {
   AMCD_PARSE_ERROR: "amcd_parse_error",
 
   // User connection state
-  signinState: null,
+  connState: null,
   SIGNING_IN: "signing_in",
   SIGNED_IN: "signed_in",
   SIGNING_OUT: "signing_out",
   SIGNED_OUT: "signed_out",
+  UNREGISTERED: "unregistered",
+  REGISTERING: "registering",
+
+  // used by profiles to prevent concurrency
+  // fixme: doesn't time out or check for errors in any way
+  lock: function(state) {
+    switch (this.connState) {
+    case this.SIGNING_IN:
+    case this.SIGNING_OUT:
+    case this.REGISTERING:
+      return false;
+    }
+    this.connState = state;
+    return true;
+  },
 
   get realmUrl() {
     return this._realmUrl;
@@ -99,9 +114,23 @@ Realm.prototype = {
     return this._profile;
   },
 
+  get username() {
+    return Svc.Prefs.get("preferred.username");
+  },
+  set username(value) {
+    Svc.Prefs.set("preferred.username", value);
+  },
+
+  get email() {
+    return Svc.Prefs.get("preferred.email");
+  },
+  set email(value) {
+    Svc.Prefs.set("preferred.email", value);
+  },
+
   _init: function(realmUrl, domainUrl) {
     this.amcdState = this.STATE_UNKNOWN;
-    this.signinState = this.STATE_UNKNOWN;
+    this.connState = this.STATE_UNKNOWN;
     if (realmUrl)
       this.realmUrl = realmUrl;
     if (domainUrl)
@@ -126,7 +155,7 @@ Realm.prototype = {
         if (this._profile)
           this.amcdState = this.AMCD_OK;
 
-        if (this.signinState == this.STATE_UNKNOWN)
+        if (this.connState == this.STATE_UNKNOWN)
           this.execute('sessionstatus');
 
       } catch (e) {
@@ -223,21 +252,25 @@ Realm.prototype = {
 
     switch (event[1]) {
     case "active":
-      this.signinState = Realm.SIGNED_IN;
+      this.connState = Realm.SIGNED_IN;
       this.curId = args["name"];
       break;
     case "passive":
-    case "none":
-      this.signinState = Realm.SIGNED_OUT;
-      break;
+    case "none": {
+      let logins = Utils.getLogins(this.domain);
+      if (logins && logins.length > 0)
+        this.connState = Realm.SIGNED_OUT;
+      else
+        this.connState = Realm.UNREGISTERED;
+    } break;
     default:
-      this.signinState = Realm.SIGNED_OUT;
+      this.connState = Realm.STATE_UNKNOWN;
       this._log.warn("Unknown status change event: " + event[1]);
     }
   },
 
   execute: function(method) {
-    if (['sessionstatus', 'connect', 'disconnect'].indexOf(method) < 0) {
+    if (['sessionstatus', 'connect', 'disconnect', 'register'].indexOf(method) < 0) {
       this._log.error("Unknown method: " + method);
       return;
     }

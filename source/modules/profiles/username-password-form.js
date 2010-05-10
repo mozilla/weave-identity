@@ -62,6 +62,29 @@ UPFormProfile.prototype = {
     this._log.level = Log4Moz.Level[Svc.Prefs.get(this._logPref)];
   },
 
+  _paramGen: function(names, params) {
+    // use param names defined in amcd
+    if (names) {
+      let renamed = {};
+      for (let key in params) {
+        renamed[names[key]? names[key] : key] = params[key];
+      }
+      params = renamed;
+    }
+
+    // generate urlencoded params
+    let out = "";
+    let fencepost = false;
+    for (key in params) {
+      if (fencepost)
+        out += '&';
+      out += key + '=' + encodeURIComponent(params[key]);
+      fencepost = true;
+    }
+
+    return out;
+  },
+
   sessionstatus: function() {
     this._log.trace('Querying signin state');
 
@@ -74,13 +97,9 @@ UPFormProfile.prototype = {
   },
 
   connect: function() {
-    this._log.trace('Connecting');
-
-    // check if we're already trying to sign in
-    // fixme: doesn't time out or check for errors in any way
-    if (this._realm.signinState == this.SIGNING_IN)
+    if (!this._realm.lock(this._realm.SIGNING_IN))
       return;
-    this._realm.signinState = this._realm.SIGNING_IN;
+    this._log.trace('Connecting');
 
     if (this._profile.connect && this._profile.connect.method == 'POST') {
       this._connect_POST();
@@ -112,13 +131,9 @@ UPFormProfile.prototype = {
   },
 
   disconnect: function() {
-    this._log.trace('Disconnecting');
-
-    // check if we're already trying to sign out
-    // fixme: doesn't time out or check for errors in any way
-    if (this._realm.signinState == this._realm.SIGNING_OUT)
+    if (!this._realm.lock(this._realm.SIGNING_OUT))
       return;
-    this._realm.signinState = this._realm.SIGNING_OUT;
+    this._log.trace('Disconnecting');
 
     if (this._profile.disconnect &&
         this._profile.disconnect.method == 'POST') {
@@ -153,5 +168,38 @@ UPFormProfile.prototype = {
     }
 
     this._realm.statusChange(res.get().headers['X-Account-Management-Status']);
+  },
+
+  register: function() {
+    if (!this._realm.lock(this._realm.REGISTERING))
+      return;
+    let reg = this._profile.register;
+
+    if (reg && reg.method == 'POST') {
+      this._log.debug("Registering a new account");
+      let url = this._realm.domain.obj.resolve(reg.path);
+      let res = new Resource(url);
+      res.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      let id;
+      if (this._profile.register.type == "email") {
+        id = this._realm.email;
+      } else if (this._profile.register.type == "username") {
+        id = this._realm.username;
+      } else {
+        this._log.warn("Unknown registration id type: " +
+                       this._profile.register.type);
+        return;
+      }
+      let secret = Utils.makeRandom(reg.secret_maxlength? reg.secret_maxlength : 16);
+      let params = this._paramGen(reg.params, {id: id, secret: secret});
+      let ret = res.post(params);
+      if (ret.status >= 200 && ret.status < 400) {
+        this._realm.statusChange(ret.headers['X-Account-Management-Status']);
+        Utils.persistLogin(id, secret, this._realm.domain, this._realm.realmUrl);
+      }
+
+    } else {
+      this._log.warn('No supported methods in common for connect');
+    }
   }
 };
