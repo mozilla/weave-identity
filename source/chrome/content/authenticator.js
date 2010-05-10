@@ -77,9 +77,29 @@ let gWeaveAuthenticator = {
     return this._popup = document.getElementById("acct-auth-popup");
   },
 
+  get _registerPopup() {
+    delete this._registerPopup;
+    return this._registerPopup = document.getElementById("acct-register-popup");
+  },
+
+  get _signinPopup() {
+    delete this._signinPopup;
+    return this._signinPopup = document.getElementById("acct-signin-popup");
+  },
+
   get _signedInDesc() {
     delete this._signedInDesc;
     return this._signedInDesc = document.getElementById("acct-auth-signed-in-desc");
+  },
+
+  get _username() {
+    delete this._username;
+    return this._username = document.getElementById("acct-username");
+  },
+
+  get _email() {
+    delete this._email;
+    return this._email = document.getElementById("acct-email");
   },
 
   get _curRealmUrl() {
@@ -95,9 +115,9 @@ let gWeaveAuthenticator = {
   //**************************************************************************//
   // XPCOM Glue
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
-                                         Ci.nsIDOMEventListener,
-                                         Ci.nsISupportsWeakReference]),
+  QueryInterface: XPCOMUtils.generateQI([Components.interfaces.nsIWebProgressListener,
+                                         Components.interfaces.nsIDOMEventListener,
+                                         Components.interfaces.nsISupportsWeakReference]),
 
 
   //**************************************************************************//
@@ -108,7 +128,7 @@ let gWeaveAuthenticator = {
       setTimeout(WeaveID.Utils.bind2(this, this.addToolbarItem), 0);
 
     if (WeaveID.Svc.Prefs.get("authenticator.enabled")) {
-      gBrowser.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
+      gBrowser.addProgressListener(this, Components.interfaces.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
       this.Observers.add("weaveid-realm-updated", this.onRealmUpdated, this);
     }
 
@@ -195,7 +215,7 @@ let gWeaveAuthenticator = {
   // UI Callbacks
 
   onButtonCommand: function(event) {
-    if (this._curRealm.signinState)
+    if (this._curRealm.connState)
       this._popup.openPopup(this._button, "after_end", 25, -10);
   },
 
@@ -224,6 +244,24 @@ let gWeaveAuthenticator = {
     this._popup.hidePopup();
   },
 
+  onRegister: function() {
+    this._popup.hidePopup();
+    this._registerPopup.openPopup(this._button, "after_end", 25, -10);
+  },
+  onRegisterOk: function() {
+    this._curRealm.username = this._username.value;
+    this._curRealm.email = this._email.value;
+    this._log.debug("username is " + this._curRealm.username);
+    this._curRealm.execute('register');
+    gBrowser.mCurrentBrowser.reload();
+    this._popup.hidePopup();
+  },
+
+  onExistingAccount: function() {
+    this._popup.hidePopup();
+    this._signinPopup.openPopup(this._button, "after_end", 25, -10);
+  },
+
   //**************************************************************************//
   // View
 
@@ -237,10 +275,10 @@ let gWeaveAuthenticator = {
   _updateView: function() {
     if (this._curRealm) {
       // AMCD supported, set view to current state
-      if (this._state.getAttribute("state") == this._curRealm.signinState)
+      if (this._state.getAttribute("state") == this._curRealm.connState)
         return;
-      this._log.debug("View state: " + this._curRealm.signinState);
-      this._state.setAttribute("state", this._curRealm.signinState);
+      this._log.debug("View state: " + this._curRealm.connState);
+      this._state.setAttribute("state", this._curRealm.connState);
     } else {
       // this site does not support the AMCD
       if (this._state.getAttribute("state") == "disabled")

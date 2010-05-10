@@ -34,8 +34,33 @@
       <vbox id="acct-auth-popup-signed-out">
         <description id="acct-auth-signed-out-desc">&acct-auth-connect-label1;</description>
         <description>&acct-auth-connect-label2;</description>
-        <button label="Connect" oncommand="gWeaveAuthenticator.onConnect();"/>
+<!--        <hbox>
+          <menulist id="acct-signin-accts">
+            <menupopup></menupopup>
+          </menulist> -->
+          <button label="Sign in" oncommand="gWeaveAuthenticator.onConnect();"/>
+<!--        </hbox> -->
+        <button label="New account" oncommand="gWeaveAuthenticator.onRegister();"/>
       </vbox>
+      <vbox id="acct-auth-popup-unregistered">
+        <description>Firefox doesn't have an account for you on this site.</description>
+        <hbox>
+          <button label="I already have an account" oncommand="gWeaveAuthenticator.onExistingAccount();"/>
+          <button label="Register a new account" oncommand="gWeaveAuthenticator.onRegister();"/>
+        </hbox>
+      </vbox>
+    </panel>
+    <panel id="acct-register-popup">
+      <vbox>
+        <label control="acct-email" value="Your email:"/>
+        <textbox id="acct-email" value="user@example.com"/>
+        <label control="acct-username" value="Enter your preferred username:"/>
+        <textbox id="acct-username" value="username"/>
+      </vbox>
+      <button label="Okay" oncommand="gWeaveAuthenticator.onRegisterOk();"/>
+    </panel>
+    <panel id="acct-signin-popup">
+      signin popup
     </panel>
   </popupset>
 

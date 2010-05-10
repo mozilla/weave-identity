@@ -6,7 +6,8 @@
     -moz-image-region: rect( 23px 36px 46px 0px);
 }
 #acct-auth-button[state="signed_out"],
-#acct-auth-button[state="signing_in"] {
+#acct-auth-button[state="signing_in"],
+#acct-auth-button[state="unregistered"] {
     -moz-image-region: rect( 69px 36px 92px 0px);
 }
 #acct-auth-button[state="signed_in"] {
@@ -19,7 +20,8 @@ toolbar[iconsize="small"] #acct-auth-button[state="unknown"] {
     -moz-image-region: rect( 23px 36px 46px 0px);
 }
 toolbar[iconsize="small"] #acct-auth-button[state="signed_out"],
-toolbar[iconsize="small"] #acct-auth-button[state="signing_in"] {
+toolbar[iconsize="small"] #acct-auth-button[state="signing_in"],
+toolbar[iconsize="small"] #acct-auth-button[state="unregistered"] {
     -moz-image-region: rect( 69px 36px 92px 0px);
 }
 toolbar[iconsize="small"] #acct-auth-button[state="signed_in"] {
@@ -28,7 +30,9 @@ toolbar[iconsize="small"] #acct-auth-button[state="signed_in"] {
 
 /* HUD panels */
 
-#acct-auth-popup {
+#acct-auth-popup,
+#acct-register-popup,
+#acct-signin-popup {
     -moz-border-image: url(chrome://browser/skin/hud-panel.png)
       26 50 22 18 / 26px 50px 22px 18px repeat;
     color: rgb(255, 255, 255);

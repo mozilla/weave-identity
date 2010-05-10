@@ -6,7 +6,8 @@
     -moz-image-region: rect( 24px 24px 48px 0px);
 }
 #acct-auth-button[state="signed_out"],
-#acct-auth-button[state="signing_in"] {
+#acct-auth-button[state="signing_in"],
+#acct-auth-button[state="unregistered"] {
     -moz-image-region: rect( 72px 24px 94px 0px);
 }
 #acct-auth-button[state="signed_in"] {
@@ -19,7 +20,8 @@ toolbar[iconsize="small"] #acct-auth-button[state="unknown"] {
     -moz-image-region: rect( 16px 16px 32px 0px);
 }
 toolbar[iconsize="small"] #acct-auth-button[state="signed_out"],
-toolbar[iconsize="small"] #acct-auth-button[state="signing_in"] {
+toolbar[iconsize="small"] #acct-auth-button[state="signing_in"],
+toolbar[iconsize="small"] #acct-auth-button[state="unregistered"] {
     -moz-image-region: rect( 48px 16px 64px 0px);
 }
 toolbar[iconsize="small"] #acct-auth-button[state="signed_in"] {

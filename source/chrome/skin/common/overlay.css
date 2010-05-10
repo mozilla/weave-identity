@@ -1,6 +1,8 @@
 /* Show the appropriate part of the panel based on the current state. */
 
-#acct-auth-popup {
+#acct-auth-popup,
+#acct-register-popup,
+#acct-signin-popup {
     -moz-appearance: none;
 }
 #acct-auth-popup > * {
@@ -8,6 +10,7 @@
 }
 #acct-auth-popup[state=""] > #acct-auth-popup-can-register,
 #acct-auth-popup[state="signed_in"] > #acct-auth-popup-signed-in,
-#acct-auth-popup[state="signed_out"] > #acct-auth-popup-signed-out {
+#acct-auth-popup[state="signed_out"] > #acct-auth-popup-signed-out,
+#acct-auth-popup[state="unregistered"] > #acct-auth-popup-unregistered {
   display: -moz-box;
 }
