@@ -231,10 +231,20 @@ let gWeaveAuthenticator = {
   },
 
   onConnect: function() {
-    this._log.debug("Attempting to connect");
+    this._log.debug("Attempting to sign in");
     this._curRealm.execute('connect');
     gBrowser.mCurrentBrowser.reload();
     this._popup.hidePopup();
+  },
+
+  onExistingConnect: function() {
+    this._log.debug("Saving existing account credentials");
+    let id = document.getElementById("acct-existing-username");
+    let pass = document.getElementById("acct-existing-password");
+    WeaveID.Utils.persistLogin(id.value, pass.value,
+                       this._curRealm.domain, this._curRealm.realmUrl);
+    this.onConnect();
+    this._signinPopup.hidePopup();
   },
 
   onDisconnect: function() {
@@ -254,7 +264,7 @@ let gWeaveAuthenticator = {
     this._log.debug("username is " + this._curRealm.username);
     this._curRealm.execute('register');
     gBrowser.mCurrentBrowser.reload();
-    this._popup.hidePopup();
+    this._registerPopup.hidePopup();
   },
 
   onExistingAccount: function() {

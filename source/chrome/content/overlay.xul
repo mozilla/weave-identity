@@ -34,13 +34,8 @@
       <vbox id="acct-auth-popup-signed-out">
         <description id="acct-auth-signed-out-desc">&acct-auth-connect-label1;</description>
         <description>&acct-auth-connect-label2;</description>
-<!--        <hbox>
-          <menulist id="acct-signin-accts">
-            <menupopup></menupopup>
-          </menulist> -->
-          <button label="Sign in" oncommand="gWeaveAuthenticator.onConnect();"/>
-<!--        </hbox> -->
-        <button label="New account" oncommand="gWeaveAuthenticator.onRegister();"/>
+        <button label="Sign in" oncommand="gWeaveAuthenticator.onConnect();"/>
+<!--        <button label="Register a new account" oncommand="gWeaveAuthenticator.onRegister();"/> -->
       </vbox>
       <vbox id="acct-auth-popup-unregistered">
         <description>Firefox doesn't have an account for you on this site.</description>
@@ -56,11 +51,17 @@
         <textbox id="acct-email" value="user@example.com"/>
         <label control="acct-username" value="Enter your preferred username:"/>
         <textbox id="acct-username" value="username"/>
+        <description>Note: In this demo, your password will be automatically</description>
+        <description>generated, future versions will offer it as an option</description>
       </vbox>
       <button label="Okay" oncommand="gWeaveAuthenticator.onRegisterOk();"/>
     </panel>
     <panel id="acct-signin-popup">
-      signin popup
+      <label control="acct-existing-username" value="Username or email:"/>
+      <textbox id="acct-existing-username" value=""/>
+      <label control="acct-existing-password" value="Password:"/>
+      <textbox id="acct-existing-password" type="password" value=""/>
+      <button label="Sign in" oncommand="gWeaveAuthenticator.onExistingConnect();"/>
     </panel>
   </popupset>
 
