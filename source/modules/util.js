@@ -776,8 +776,22 @@ let Utils = {
    * Get logins (username/passwords) from the login manager for a
    * domain & username combination
    */
-  getLogins: function(domain, realm, username) {
-    let logins = Svc.Login.findLogins({}, domain, domain, realm);
+  getLogins: function(domain, realm, username, tryHarder) {
+    let logins = [];
+    foo: {
+      logins = Svc.Login.findLogins({}, domain, domain, realm);
+      if (logins.length > 0 || !tryHarder)
+        break foo;
+      logins = Svc.Login.findLogins({}, domain, null, realm);
+      if (logins.length > 0)
+        break foo;
+      logins = Svc.Login.findLogins({}, domain, domain, null);
+      if (logins.length > 0)
+        break foo;
+      logins = Svc.Login.findLogins({}, domain, null, null);
+      if (logins.length > 0)
+        break foo;
+    }
 
     if (!username)
       return logins;

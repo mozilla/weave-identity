@@ -55,7 +55,7 @@ SynthProfile.prototype = {
 
   _connect_POST: function() {
     let connect = this._profile.connect;
-    let logins = Utils.getLogins(this._realm.domain);
+    let logins = Utils.getLogins(this._realm.domain, this._realm.realmUrl, null, true);
     let username, password;
     if (logins && logins.length > 0) {
       username = logins[0].username;

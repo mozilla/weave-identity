@@ -257,7 +257,7 @@ Realm.prototype = {
       break;
     case "passive":
     case "none": {
-      let logins = Utils.getLogins(this.domain);
+      let logins = Utils.getLogins(this.domain, this.realmUrl, null, true);
       if (logins && logins.length > 0)
         this.connState = Realm.SIGNED_OUT;
       else
